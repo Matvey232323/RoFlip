@@ -858,6 +858,22 @@ function saveChatMessage(message) {
   localStorage.setItem('roflipChatHistory', JSON.stringify(history));
 }
 
+function getGlobalMatches() {
+  return JSON.parse(localStorage.getItem('roflipMatches')) || [];
+}
+
+function saveGlobalMatches(matches) {
+  localStorage.setItem('roflipMatches', JSON.stringify(matches));
+}
+
+function getGlobalPlayers() {
+  return JSON.parse(localStorage.getItem('roflipPlayers')) || [];
+}
+
+function saveGlobalPlayers(players) {
+  localStorage.setItem('roflipPlayers', JSON.stringify(players));
+}
+
 function logout() {
   localStorage.removeItem('currentUser');
   location.reload();
@@ -882,14 +898,15 @@ function initUserData() {
   // Загрузка истории
   history = user.history || [];
   
-  // Инициализация тестовых данных
-  players = [
-    {id: user.id, name: user.username, totalWon: user.totalWon || 0},
-    {id: 2, name: "Player2", totalWon: 150},
-    {id: 3, name: "Player3", totalWon: 80},
-    {id: 4, name: "ProGamer", totalWon: 220},
-    {id: 5, name: "LuckyOne", totalWon: 190}
-  ];
+  // Загрузка глобальных данных
+  players = getGlobalPlayers();
+  matches = getGlobalMatches();
+  
+  // Если игрока нет в глобальном списке, добавляем его
+  if (!players.some(p => p.id === user.id)) {
+    players.push({id: user.id, name: user.username, totalWon: user.totalWon || 0});
+    saveGlobalPlayers(players);
+  }
   
   // Показываем основной интерфейс с анимацией
   document.getElementById('navbar').style.display = 'flex';
@@ -902,6 +919,26 @@ function initUserData() {
   
   // Загружаем историю чата
   loadChatHistory();
+  
+  // Периодическое обновление данных
+  setInterval(updateGlobalData, 3000);
+}
+
+// Обновление глобальных данных
+function updateGlobalData() {
+  const globalMatches = getGlobalMatches();
+  const globalPlayers = getGlobalPlayers();
+  
+  // Обновляем матчи, если они изменились
+  if (JSON.stringify(globalMatches) !== JSON.stringify(matches)) {
+    matches = globalMatches;
+    renderMatches();
+  }
+  
+  // Обновляем игроков, если они изменились
+  if (JSON.stringify(globalPlayers) !== JSON.stringify(players)) {
+    players = globalPlayers;
+  }
 }
 
 // Загрузка истории чата
@@ -979,6 +1016,11 @@ function registerUser(username, password) {
   saveUsers(users);
   setCurrentUser(newUser);
   
+  // Добавляем игрока в глобальный список
+  const globalPlayers = getGlobalPlayers();
+  globalPlayers.push({id: newUser.id, name: newUser.username, totalWon: 0});
+  saveGlobalPlayers(globalPlayers);
+  
   return { success: true };
 }
 
@@ -1052,6 +1094,7 @@ function cancelMatch(matchId) {
   
   // Удаляем матч из списка
   matches.splice(matchIndex, 1);
+  saveGlobalMatches(matches);
   renderMatches();
 }
 
@@ -1194,7 +1237,7 @@ function createMatch(items) {
   const matchId = Date.now();
   const sumC = items.reduce((a, i) => a + i.value, 0);
   
-  matches.push({
+  const newMatch = {
     id: matchId,
     creatorId: currentUserId,
     creatorName: currentUsername,
@@ -1203,16 +1246,21 @@ function createMatch(items) {
     opponentName: "",
     opponentItems: [],
     status: "waiting"
-  });
+  };
+  
+  // Добавляем матч в глобальный список
+  matches.push(newMatch);
+  saveGlobalMatches(matches);
   
   // Обновляем статистику игрока
   const player = players.find(p => p.id === currentUserId);
   if (player) {
     player.totalWon -= sumC;
+    saveGlobalPlayers(players);
   }
   
   const itemNames = items.map(i => i.name).join(", ");
-  addChat("System", `You created match #${matchId} with items: ${itemNames} (${sumC})`);
+  addChat("System", `${currentUsername} created match #${matchId} with items: ${itemNames} (${sumC})`);
   
   updateUserTotal();
   renderMatches();
@@ -1234,10 +1282,13 @@ function joinMatch(matchId, items) {
   m.opponentItems = items;
   m.status = "playing";
   
+  // Сохраняем обновленный матч
+  saveGlobalMatches(matches);
+  
   const sumC = m.creatorItems.reduce((a, i) => a + i.value, 0);
   const sumO = items.reduce((a, i) => a + i.value, 0);
   
-  addChat("System", `You joined match #${matchId} with items: ${items.map(i => i.name).join(", ")} (${sumO})`);
+  addChat("System", `${currentUsername} joined match #${matchId} with items: ${items.map(i => i.name).join(", ")} (${sumO})`);
   addChat("System", `Match started: ${sumC} vs ${sumO}`);
   
   updateUserTotal();
@@ -1249,6 +1300,7 @@ function joinMatch(matchId, items) {
     const isCurrentUserWinner = winnerId === currentUserId;
     
     m.status = "finished";
+    saveGlobalMatches(matches);
     
     const allItems = m.creatorItems.concat(m.opponentItems);
     const totalValue = sumC + sumO;
@@ -1269,6 +1321,7 @@ function joinMatch(matchId, items) {
       const player = players.find(p => p.id === currentUserId);
       if (player) {
         player.totalWon += totalValue;
+        saveGlobalPlayers(players);
       }
     }
     
@@ -1312,7 +1365,7 @@ function initEventListeners() {
       $("chatInput").value = t;
     }
     
-    addChat("You", t); 
+    addChat(currentUsername, t); 
     $("chatInput").value = "";
   };
 
