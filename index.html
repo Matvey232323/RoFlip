@@ -652,6 +652,60 @@
   .close-modal:hover {
     color: #ff5555;
   }
+  
+  /* Анимация монетки */
+  .coin-flip-container {
+    perspective: 1000px;
+    width: 150px;
+    height: 150px;
+    margin: 20px auto;
+  }
+  
+  .coin {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    animation: flip-coin 2s ease-out forwards;
+  }
+  
+  .coin-front, .coin-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+  }
+  
+  .coin-front {
+    background: linear-gradient(45deg, #ffcc00, #ff9900);
+    transform: rotateY(0deg);
+  }
+  
+  .coin-back {
+    background: linear-gradient(45deg, #999999, #666666);
+    transform: rotateY(180deg);
+  }
+  
+  @keyframes flip-coin {
+    0% { transform: rotateY(0); }
+    50% { transform: rotateY(1800deg); }
+    100% { transform: rotateY(1980deg); }
+  }
+  
+  .result-animation {
+    animation: pulse 1s infinite alternate;
+  }
+  
+  @keyframes pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+  }
 </style>
 </head>
 <body>
@@ -751,7 +805,13 @@
 <div id="resultModal" class="modalOverlay">
   <div class="modal">
     <h3>Coinflip Result</h3>
-    <div class="coin-result" id="coinResult"></div>
+    <div class="coin-flip-container">
+      <div class="coin" id="coinAnimation">
+        <div class="coin-front">HEADS</div>
+        <div class="coin-back">TAILS</div>
+      </div>
+    </div>
+    <div class="coin-result result-animation" id="coinResult"></div>
     <div id="resultText" style="text-align:center; padding: 0 10px;"></div>
     <button id="resultCloseBtn" class="cancelBtn">Close</button>
   </div>
@@ -825,6 +885,7 @@ let selectedItems = [];
 let joinSelectedItems = [];
 let currentJoinMatch = null;
 let chatHistory = [];
+let dataUpdateInterval = null;
 
 // Функции для работы с localStorage
 function getUsers() {
@@ -876,6 +937,7 @@ function saveGlobalPlayers(players) {
 
 function logout() {
   localStorage.removeItem('currentUser');
+  if (dataUpdateInterval) clearInterval(dataUpdateInterval);
   location.reload();
 }
 
@@ -921,7 +983,8 @@ function initUserData() {
   loadChatHistory();
   
   // Периодическое обновление данных
-  setInterval(updateGlobalData, 3000);
+  if (dataUpdateInterval) clearInterval(dataUpdateInterval);
+  dataUpdateInterval = setInterval(updateGlobalData, 2000);
 }
 
 // Обновление глобальных данных
@@ -939,6 +1002,79 @@ function updateGlobalData() {
   if (JSON.stringify(globalPlayers) !== JSON.stringify(players)) {
     players = globalPlayers;
   }
+  
+  // Проверяем завершенные матчи текущего пользователя
+  checkFinishedMatches();
+}
+
+// Проверка завершенных матчей текущего пользователя
+function checkFinishedMatches() {
+  const userMatches = matches.filter(m => 
+    (m.creatorId === currentUserId || m.opponentId === currentUserId) && 
+    m.status === "finished" && 
+    !m.resultShown
+  );
+  
+  userMatches.forEach(match => {
+    match.resultShown = true;
+    saveGlobalMatches(matches);
+    showMatchResult(match);
+  });
+}
+
+// Показать результат матча
+function showMatchResult(match) {
+  const isCreator = match.creatorId === currentUserId;
+  const isWinner = (isCreator && match.winner === "creator") || (!isCreator && match.winner === "opponent");
+  const allItems = [...match.creatorItems, ...match.opponentItems];
+  const totalValue = allItems.reduce((sum, item) => sum + item.value, 0);
+  
+  // Анимация монетки
+  const coinAnimation = $("#coinAnimation");
+  coinAnimation.style.animation = "none";
+  setTimeout(() => {
+    coinAnimation.style.animation = "flip-coin 2s ease-out forwards";
+  }, 10);
+  
+  if (isWinner) {
+    // Добавляем выигранные предметы в инвентарь
+    userInv.push(...allItems);
+    updateUserTotal();
+    
+    $("#coinResult").textContent = 'YOU WON!';
+    $("#coinResult").style.color = '#00ff00';
+    $("#resultText").innerHTML = `
+      <p>You won <span style="color:#00ff00; font-weight:bold">${totalValue}</span> value!</p>
+      <p>Received items: ${allItems.map(i => i.name).join(", ")}</p>
+    `;
+  } else {
+    $("#coinResult").textContent = 'YOU LOST!';
+    $("#coinResult").style.color = '#ff0000';
+    $("#resultText").innerHTML = `
+      <p>You lost!</p>
+      <p><span style="color:#ff5555; font-weight:bold">${isCreator ? match.opponentName : match.creatorName}</span> won with ${totalValue} value</p>
+    `;
+  }
+  
+  // Обновляем статистику игрока
+  const player = players.find(p => p.id === currentUserId);
+  if (player) {
+    player.totalWon = isWinner ? (player.totalWon || 0) + totalValue : (player.totalWon || 0) - totalValue;
+    saveGlobalPlayers(players);
+  }
+  
+  // Добавляем запись в историю
+  const record = {
+    time: new Date(),
+    won: isWinner,
+    items: allItems,
+    amount: totalValue,
+    opponent: isCreator ? match.opponentName : match.creatorName
+  };
+  history.unshift(record);
+  saveUserData();
+  
+  openModal($("resultModal"));
 }
 
 // Загрузка истории чата
@@ -1245,7 +1381,9 @@ function createMatch(items) {
     opponentId: null,
     opponentName: "",
     opponentItems: [],
-    status: "waiting"
+    status: "waiting",
+    winner: null,
+    resultShown: false
   };
   
   // Добавляем матч в глобальный список
@@ -1255,7 +1393,7 @@ function createMatch(items) {
   // Обновляем статистику игрока
   const player = players.find(p => p.id === currentUserId);
   if (player) {
-    player.totalWon -= sumC;
+    player.totalWon = (player.totalWon || 0) - sumC;
     saveGlobalPlayers(players);
   }
   
@@ -1282,9 +1420,6 @@ function joinMatch(matchId, items) {
   m.opponentItems = items;
   m.status = "playing";
   
-  // Сохраняем обновленный матч
-  saveGlobalMatches(matches);
-  
   const sumC = m.creatorItems.reduce((a, i) => a + i.value, 0);
   const sumO = items.reduce((a, i) => a + i.value, 0);
   
@@ -1292,57 +1427,15 @@ function joinMatch(matchId, items) {
   addChat("System", `Match started: ${sumC} vs ${sumO}`);
   
   updateUserTotal();
-  renderMatches();
   
+  // Определяем победителя через 2 секунды
   setTimeout(() => {
-    const winner = Math.random() < 0.5 ? 'creator' : 'opponent';
-    const winnerId = winner === 'creator' ? m.creatorId : m.opponentId;
-    const isCurrentUserWinner = winnerId === currentUserId;
-    
+    m.winner = Math.random() < 0.5 ? 'creator' : 'opponent';
     m.status = "finished";
     saveGlobalMatches(matches);
     
-    const allItems = m.creatorItems.concat(m.opponentItems);
-    const totalValue = sumC + sumO;
-    
-    const record = {
-      time: new Date(),
-      won: isCurrentUserWinner,
-      items: allItems,
-      amount: totalValue,
-      opponent: winner === 'creator' ? m.creatorName : m.opponentName
-    };
-    
-    history.unshift(record);
-    saveUserData();
-    
-    if (isCurrentUserWinner) {
-      userInv.push(...allItems);
-      const player = players.find(p => p.id === currentUserId);
-      if (player) {
-        player.totalWon += totalValue;
-        saveGlobalPlayers(players);
-      }
-    }
-    
-    $("#coinResult").textContent = isCurrentUserWinner ? 'YOU WON!' : 'YOU LOST!';
-    $("#coinResult").style.color = isCurrentUserWinner ? '#00ff00' : '#ff0000';
-    
-    if (isCurrentUserWinner) {
-      $("#resultText").innerHTML = `
-        <p>You won <span style="color:#00ff00; font-weight:bold">${totalValue}</span> value!</p>
-        <p>Received items: ${allItems.map(i => i.name).join(", ")}</p>
-      `;
-    } else {
-      $("#resultText").innerHTML = `
-        <p>You lost!</p>
-        <p><span style="color:#ff5555; font-weight:bold">${winner === 'creator' ? m.creatorName : m.opponentName}</span> won with ${totalValue} value</p>
-      `;
-    }
-    
-    openModal($("resultModal"));
-    updateUserTotal();
-    renderMatches();
+    // Уведомляем игроков о результате
+    addChat("System", `Match #${matchId} finished! Winner: ${m.winner === 'creator' ? m.creatorName : m.opponentName}`);
   }, 2000);
 }
 
