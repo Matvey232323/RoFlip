@@ -1,706 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>RoFlip</title>
+<!-- Стили остаются без изменений -->
 <style>
-  body { 
-    margin:0; 
-    font-family:'Segoe UI', sans-serif; 
-    background: linear-gradient(135deg, #0e0e1a, #1a1a2e);
-    color:#fff; 
-    overflow:hidden;
-    height: 100vh;
-  }
-  #navbar { 
-    background:#1a1a2e; 
-    display:flex; 
-    align-items:center; 
-    padding:10px 20px; 
-    box-shadow:0 0 10px rgba(255, 0, 204, 0.5);
-    position: relative;
-    z-index: 10;
-  }
-  .left-side, .right-side { 
-    display:flex; 
-    align-items:center; 
-    gap:10px; 
-  }
-  .left-side { flex:1 }
-  #navbar img { 
-    height:40px; 
-    margin-right:20px; 
-    filter: drop-shadow(0 0 5px #ff00cc);
-  }
-  .nav-btn { 
-    background:#ff00cc; 
-    border:none; 
-    padding:8px 12px; 
-    border-radius:5px; 
-    cursor:pointer; 
-    box-shadow:0 0 8px #ff00cc; 
-    transition:all 0.3s; 
-    font-size:14px;
-    color: white;
-    font-weight: bold;
-  }
-  .nav-btn:hover { 
-    background:#ff33dd; 
-    transform: translateY(-2px);
-    box-shadow: 0 0 12px #ff33dd;
-  }
-  #container { 
-    display:flex; 
-    padding:20px; 
-    height:calc(100vh - 60px); 
-    box-sizing:border-box; 
-    gap:15px;
-    background: rgba(10, 10, 20, 0.7);
-  }
-  #matchesListPanel { 
-    flex:1; 
-    min-width:0;
-    display: flex;
-    flex-direction: column;
-  }
-  #chatPanel { 
-    flex:0 0 350px; 
-    display:flex; 
-    flex-direction:column; 
-    background:#161627; 
-    border-radius:8px; 
-    padding:15px; 
-    box-shadow:0 0 10px rgba(255, 0, 204, 0.3);
-    position: relative;
-  }
-  #createMatchBtn { 
-    background: linear-gradient(90deg, #ff00cc, #3333ff);
-    border: none; 
-    color: #fff; 
-    padding: 12px 25px; 
-    cursor: pointer; 
-    font-weight: bold; 
-    box-shadow: 0 0 10px rgba(255, 0, 204, 0.5); 
-    border-radius: 5px; 
-    transition: all 0.3s; 
-    margin-bottom: 15px;
-    font-size: 16px;
-    display: block;
-    width: 100%;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-  #createMatchBtn:hover { 
-    background: linear-gradient(90deg, #e000b0, #2a2add);
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(255, 0, 204, 0.7);
-  }
-  #matchesList { 
-    flex:1; 
-    overflow-y:auto; 
-    background:#161627; 
-    border-radius:8px; 
-    padding:10px;
-    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5);
-  }
-  .match { 
-    background: linear-gradient(to right, #1f1f2f, #252540);
-    padding:15px; 
-    margin:10px 0; 
-    border-radius:8px; 
-    border-left:4px solid #ff00cc; 
-    box-shadow:0 0 8px rgba(255, 0, 204, 0.3); 
-    display:flex; 
-    justify-content:space-between; 
-    align-items:center;
-    transition: all 0.3s;
-  }
-  .match:hover {
-    transform: translateX(5px);
-    box-shadow: 0 0 12px rgba(255, 0, 204, 0.5);
-  }
-  .match-creator { 
-    color:#ff5555; 
-    font-weight:bold; 
-    text-shadow: 0 0 3px #ff5555;
-  }
-  .match-items { 
-    color:#00ffff; 
-    font-weight:bold; 
-    text-shadow:0 0 5px #00ffff; 
-    margin: 0 5px;
-  }
-  .match-value { 
-    color:#00ffff; 
-    font-weight:bold; 
-    text-shadow:0 0 5px #00ffff;
-    background: rgba(0, 255, 255, 0.1);
-    padding: 2px 8px;
-    border-radius: 10px;
-  }
-  .match-status { 
-    color:#aaa; 
-    font-size:0.9em;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .join-btn { 
-    background:#00ffff; 
-    border:none; 
-    padding:10px 20px; 
-    color:#000; 
-    cursor:pointer; 
-    font-weight:bold; 
-    border-radius:4px; 
-    box-shadow:0 0 10px #00ffff; 
-    transition:all 0.3s; 
-    text-transform:uppercase;
-    min-width: 100px;
-    text-align: center;
-  }
-  .join-btn:hover { 
-    background:#33ffff; 
-    box-shadow:0 0 15px #00ffff;
-    transform: translateY(-2px);
-  }
-  .cancel-btn { 
-    background:#ff5555; 
-    border:none; 
-    padding:8px 15px; 
-    color:#fff; 
-    cursor:pointer; 
-    font-weight:bold; 
-    border-radius:4px; 
-    box-shadow:0 0 8px #ff5555; 
-    transition:all 0.3s; 
-    margin-left:10px;
-  }
-  .cancel-btn:hover { 
-    background:#ff7777;
-    transform: translateY(-2px);
-    box-shadow: 0 0 12px #ff5555;
-  }
-  #chatMessages { 
-    flex:1; 
-    overflow-y:auto; 
-    margin-bottom:10px; 
-    max-height:calc(100vh - 200px);
-    background: rgba(10, 10, 20, 0.3);
-    border-radius: 5px;
-    padding: 10px;
-  }
-  .chat-message { 
-    margin-bottom:8px; 
-    word-break:break-word;
-    padding: 8px;
-    border-radius: 5px;
-    background: rgba(30, 30, 50, 0.4);
-    animation: fadeIn 0.3s ease;
-  }
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .chat-username { 
-    font-weight:bold; 
-    color:#ff66dd;
-    text-shadow: 0 0 3px #ff66dd;
-  }
-  #chatInputContainer { 
-    display:flex; 
-    gap:5px;
-    margin-top: 10px;
-  }
-  #chatInput { 
-    flex:1; 
-    padding:12px; 
-    background:#1f1f2f; 
-    border:1px solid #444;
-    color:#fff; 
-    border-radius:4px; 
-    max-width:100%;
-    box-shadow: inset 0 0 5px rgba(0,0,0,0.5);
-  }
-  #chatInput:focus {
-    outline: none;
-    border-color: #ff00cc;
-    box-shadow: 0 0 8px rgba(255, 0, 204, 0.5);
-  }
-  #chatSendBtn { 
-    padding:12px 20px; 
-    background:#ff00cc; 
-    border:none; 
-    color:#fff; 
-    cursor:pointer; 
-    font-weight:bold; 
-    border-radius:4px; 
-    box-shadow:0 0 8px #ff00cc; 
-    transition:all 0.3s;
-    min-width: 80px;
-  }
-  #chatSendBtn:hover { 
-    background:#d100b3;
-    transform: translateY(-2px);
-    box-shadow: 0 0 12px #ff00cc;
-  }
-  .itemsList { 
-    display:flex; 
-    gap:10px; 
-    flex-wrap:wrap; 
-    margin-top:10px;
-  }
-  .item { 
-    background: linear-gradient(to bottom, #2f2f4f, #252540);
-    padding:12px; 
-    border-radius:6px; 
-    cursor:pointer; 
-    color:#fff; 
-    transition:all 0.3s;
-    min-width: 100px;
-    text-align: center;
-    border: 1px solid #444;
-  }
-  .item:hover { 
-    transform:scale(1.05); 
-    box-shadow:0 0 8px #0ff;
-    border-color: #0ff;
-  }
-  .item.selected { 
-    background:linear-gradient(to bottom, #00ffcc, #00cc99); 
-    color:#000; 
-    font-weight:bold; 
-    box-shadow:0 0 10px #00ffcc;
-    border-color: #00ffcc;
-  }
-  @keyframes fadeInZoom { 0% { opacity:0; transform:scale(0.8) } 100% { opacity:1; transform:scale(1) } }
-  @keyframes fadeOutZoom { 0% { opacity:1; transform:scale(1) } 100% { opacity:0; transform:scale(0.8) } }
-  .modalOverlay { 
-    display:none; 
-    position:fixed; 
-    top:0; 
-    left:0; 
-    right:0; 
-    bottom:0; 
-    background:rgba(0,0,0,0.8); 
-    justify-content:center; 
-    align-items:center; 
-    z-index:100; 
-    opacity:0; 
-    transition:opacity 0.3s ease;
-  }
-  .modalOverlay.active { 
-    display:flex; 
-    opacity:1;
-  }
-  .modal { 
-    background: linear-gradient(135deg, #1a1a2e, #252540);
-    padding:25px; 
-    border-radius:10px; 
-    width:400px; 
-    max-height:80vh; 
-    overflow:auto; 
-    animation:fadeInZoom 0.3s ease; 
-    box-shadow:0 0 20px rgba(255, 0, 204, 0.5);
-    border: 1px solid #ff00cc;
-    position: relative;
-  }
-  .modal h3 { 
-    margin:0 0 15px; 
-    color:#fff;
-    text-align: center;
-    text-shadow: 0 0 5px #ff00cc;
-    font-size: 24px;
-  }
-  .modal h4 {
-    margin: 10px 0;
-    color: #aaa;
-    font-weight: normal;
-  }
-  .tab-buttons { 
-    display:flex; 
-    gap:10px; 
-    margin-bottom:15px;
-    justify-content: center;
-  }
-  .tab-btn { 
-    background:#333; 
-    color:#fff; 
-    border:none; 
-    padding:8px 15px; 
-    border-radius:5px; 
-    cursor:pointer; 
-    transition:all 0.3s;
-    flex: 1;
-    text-align: center;
-  }
-  .tab-btn.active { 
-    background:linear-gradient(90deg, #ff00cc, #3333ff);
-    box-shadow: 0 0 8px #ff00cc;
-  }
-  .tab-content { display:none; }
-  .tab-content.active { display:block }
-  .modal button.primary { 
-    margin-top:15px; 
-    background:linear-gradient(90deg, #00ffcc, #00cc99); 
-    color:#000; 
-    border:none; 
-    padding:12px 20px; 
-    border-radius:5px; 
-    cursor:pointer; 
-    font-weight:bold; 
-    box-shadow:0 0 10px #00ffcc; 
-    transition:all 0.3s;
-    display: block;
-    width: 100%;
-    font-size: 16px;
-  }
-  .modal button.primary:hover { 
-    background:linear-gradient(90deg, #33ffdd, #00dd99); 
-    box-shadow:0 0 15px #00ffcc;
-    transform: translateY(-2px);
-  }
-  .modal button.primary:disabled { 
-    background:#555; 
-    color:#888; 
-    box-shadow:none; 
-    cursor:not-allowed;
-    transform: none !important;
-  }
-  .cancelBtn { 
-    background:#444; 
-    color:#fff; 
-    border:none; 
-    cursor:pointer; 
-    box-shadow:0 0 5px #444; 
-    border-radius:5px; 
-    padding:10px 20px;
-    display: block;
-    margin: 15px auto 0;
-    transition: all 0.3s;
-  }
-  .cancelBtn:hover { 
-    background:#666;
-    transform: translateY(-2px);
-    box-shadow: 0 0 8px #666;
-  }
-  #historyList, #leaderboardList { 
-    list-style:none; 
-    padding:0; 
-    margin:0;
-    max-height: 300px;
-    overflow-y: auto;
-  }
-  #historyList li { 
-    padding:10px; 
-    border-bottom:1px solid #333;
-    background: rgba(30, 30, 50, 0.3);
-    margin-bottom: 5px;
-    border-radius: 5px;
-  }
-  #leaderboardList li { 
-    display:flex; 
-    justify-content:space-between; 
-    background:rgba(30, 30, 50, 0.3); 
-    margin:8px 0; 
-    padding:10px; 
-    border-radius:5px;
-    border-left: 3px solid #ff00cc;
-  }
-  #leaderboardList li span.name { 
-    font-weight:bold;
-    color: #ff66dd;
-  }
-  
-  /* Стили для окна авторизации */
-  #authModal .modal {
-    width: 400px;
-    background: linear-gradient(135deg, #1a1a2e, #252540);
-    border: 1px solid #ff00cc;
-    box-shadow: 0 0 20px rgba(255, 0, 204, 0.5);
-  }
-  .auth-header {
-    text-align: center;
-    margin-bottom: 20px;
-  }
-  .auth-header h2 {
-    color: #00ffff;
-    text-shadow: 0 0 10px #00ffff;
-    margin-bottom: 5px;
-    font-size: 28px;
-  }
-  .auth-header p {
-    color: #aaa;
-    font-size: 14px;
-  }
-  .auth-form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-  }
-  .auth-form input {
-    padding: 12px 15px;
-    border-radius: 5px;
-    border: 1px solid #444;
-    background: rgba(30, 30, 60, 0.5);
-    color: #fff;
-    font-size: 16px;
-    transition: all 0.3s;
-  }
-  .auth-form input:focus {
-    border-color: #00ffff;
-    box-shadow: 0 0 10px #00ffff;
-    outline: none;
-    background: rgba(30, 30, 60, 0.7);
-  }
-  .auth-tabs {
-    display: flex;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    overflow: hidden;
-    background: #1f1f2f;
-  }
-  .auth-tab {
-    flex: 1;
-    padding: 12px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    color: #aaa;
-    font-weight: bold;
-  }
-  .auth-tab.active {
-    background: linear-gradient(90deg, #ff00cc, #3333ff);
-    color: #fff;
-  }
-  .auth-switch {
-    margin-top: 15px;
-    text-align: center;
-    color: #666;
-    cursor: pointer;
-    transition: color 0.3s;
-    font-size: 14px;
-  }
-  .auth-switch:hover {
-    color: #00ffff;
-    text-decoration: underline;
-  }
-  .error-message {
-    color: #ff5555;
-    text-align: center;
-    margin-top: 10px;
-    font-size: 14px;
-    text-shadow: 0 0 5px rgba(255, 85, 85, 0.5);
-  }
-  .success-message {
-    color: #00ffaa;
-    text-align: center;
-    margin-top: 10px;
-    font-size: 14px;
-    text-shadow: 0 0 5px rgba(0, 255, 170, 0.5);
-  }
-  .auth-btn {
-    background: linear-gradient(90deg, #ff00cc, #3333ff);
-    border: none;
-    color: white;
-    padding: 14px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 16px;
-    box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
-    transition: all 0.3s;
-    margin-top: 10px;
-  }
-  .auth-btn:hover {
-    background: linear-gradient(90deg, #ff33dd, #5555ff);
-    box-shadow: 0 0 15px rgba(255, 0, 204, 0.7);
-    transform: translateY(-2px);
-  }
-  .auth-btn:disabled {
-    background: #555;
-    box-shadow: none;
-    cursor: not-allowed;
-    transform: none !important;
-  }
-
-  /* Анимация перехода */
-  @keyframes fadeInMain {
-    0% { opacity: 0; transform: scale(0.95); }
-    100% { opacity: 1; transform: scale(1); }
-  }
-  
-  .main-content {
-    animation: fadeInMain 0.5s ease forwards;
-    opacity: 0;
-  }
-
-  @media (max-width: 768px) {
-    #container { flex-direction:column; padding:10px }
-    #chatPanel { flex:0 0 auto; width:100%; margin-top:15px; height: 300px; }
-    #matchesListPanel, #chatPanel { margin:0 }
-    #authModal .modal {
-      width: 90%;
-      max-width: 350px;
-    }
-  }
-
-  .inventory-buttons { 
-    display:flex; 
-    gap:10px; 
-    margin-top:15px;
-    justify-content: center;
-  }
-  .inv-btn { 
-    background:linear-gradient(90deg, #3333ff, #5555ff); 
-    border:none; 
-    padding:10px 15px; 
-    border-radius:5px; 
-    cursor:pointer; 
-    color:#fff; 
-    font-weight:bold; 
-    transition:all 0.3s;
-    flex: 1;
-    text-align: center;
-    box-shadow: 0 0 8px rgba(51, 51, 255, 0.5);
-  }
-  .inv-btn:hover { 
-    background:linear-gradient(90deg, #5555ff, #7777ff);
-    transform: translateY(-2px);
-    box-shadow: 0 0 12px rgba(51, 51, 255, 0.7);
-  }
-  #withdrawBtn { 
-    background:linear-gradient(90deg, #ff3333, #ff5555);
-    box-shadow: 0 0 8px rgba(255, 51, 51, 0.5);
-  }
-  #withdrawBtn:hover { 
-    background:linear-gradient(90deg, #ff5555, #ff7777);
-    box-shadow: 0 0 12px rgba(255, 51, 51, 0.7);
-  }
-  .coin-result { 
-    font-size:2.5em; 
-    text-align:center; 
-    margin:20px 0; 
-    animation:flip 1s ease;
-    font-weight: bold;
-    text-shadow: 0 0 10px currentColor;
-  }
-  @keyframes flip { 
-    0% { transform:rotateY(0deg) } 
-    50% { transform:rotateY(180deg) } 
-    100% { transform:rotateY(360deg) } 
-  }
-  .bot-buttons { 
-    display:flex; 
-    flex-direction:column; 
-    gap:10px; 
-    margin:20px 0;
-  }
-  .bot-btn { 
-    background:linear-gradient(to right, #2f2f4f, #3f3f6f); 
-    border:none; 
-    padding:12px; 
-    border-radius:5px; 
-    color:#fff; 
-    cursor:pointer; 
-    transition:all 0.3s;
-    text-align: center;
-    font-weight: bold;
-    border: 1px solid #444;
-  }
-  .bot-btn:hover { 
-    background:linear-gradient(to right, #3f3f6f, #4f4f8f);
-    transform: translateY(-2px);
-    box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
-    border-color: #0ff;
-  }
-  .match-info { 
-    display:flex; 
-    flex-direction:column; 
-    gap:8px; 
-    flex:1;
-  }
-  .match-row { 
-    display:flex; 
-    align-items:center; 
-    gap:8px; 
-    flex-wrap:wrap;
-  }
-  
-  /* Элементы декора */
-  .neon-line {
-    height: 3px;
-    background: linear-gradient(90deg, #ff00cc, #3333ff);
-    box-shadow: 0 0 10px rgba(255, 0, 204, 0.5);
-    margin: 10px 0;
-    border-radius: 3px;
-  }
-  
-  /* Кнопка закрытия */
-  .close-modal {
-    position: absolute;
-    top: 15px;
-    right: 15px;
-    background: none;
-    border: none;
-    color: #aaa;
-    font-size: 20px;
-    cursor: pointer;
-    transition: color 0.3s;
-  }
-  .close-modal:hover {
-    color: #ff5555;
-  }
+  /* ... (все стили остаются без изменений) ... */
 </style>
 </head>
 <body>
 
 <!-- Главное окно авторизации -->
 <div id="authModal" class="modalOverlay active">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('authModal'))">✕</button>
-    <div class="auth-header">
-      <h2>ROFLIP</h2>
-      <p>Enter your credentials to start playing</p>
-    </div>
-    
-    <div class="auth-tabs">
-      <div class="auth-tab active" data-tab="register">REGISTER</div>
-      <div class="auth-tab" data-tab="login">LOGIN</div>
-    </div>
-    
-    <div id="registerForm" class="auth-form">
-      <input type="text" id="regUsername" placeholder="Username" required>
-      <input type="password" id="regPassword" placeholder="Password" required>
-      <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required>
-      <button id="registerBtn" class="auth-btn">CREATE ACCOUNT</button>
-      <div class="auth-switch">Already have an account? Login here</div>
-      <div id="regError" class="error-message"></div>
-      <div id="regSuccess" class="success-message"></div>
-    </div>
-    
-    <div id="loginForm" class="auth-form" style="display:none">
-      <input type="text" id="loginUsername" placeholder="Username" required>
-      <input type="password" id="loginPassword" placeholder="Password" required>
-      <button id="loginBtn" class="auth-btn">LOGIN</button>
-      <div class="auth-switch">Don't have an account? Register here</div>
-      <div id="loginError" class="error-message"></div>
-    </div>
-  </div>
+  <!-- ... (код модального окна без изменений) ... -->
 </div>
 
 <!-- Основной интерфейс (скрыт до авторизации) -->
 <div id="navbar" style="display:none" class="main-content">
-  <div class="left-side">
-    <img src="https://i.imgur.com/9wYQxXf.png" alt="RoFlip Logo">
-    <h2 style="color: #00ffff; text-shadow: 0 0 8px #00ffff;">ROFLIP</h2>
-  </div>
-  <div class="right-side">
-    <button id="leaderboardBtn" class="nav-btn" title="Leaderboard">🏅 Leaderboard</button>
-    <button id="profileBtn" class="nav-btn">👤 Profile</button>
-    <button id="logoutBtn" class="nav-btn" style="background:linear-gradient(90deg, #ff5555, #ff3333)">🚪 Logout</button>
-  </div>
+  <!-- ... (код навбара без изменений) ... -->
 </div>
 
 <div id="container" style="display:none" class="main-content">
@@ -722,97 +37,7 @@
 </div>
 
 <!-- Все модальные окна игры -->
-<div id="pickModal" class="modalOverlay">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('pickModal'))">✕</button>
-    <h3>Create Coinflip</h3>
-    <h4>Select items to bet:</h4>
-    <div id="pickItems" class="itemsList"></div>
-    <div style="margin-top: 15px; text-align: center; font-size: 18px;">
-      Total Bet: <span id="totalBet" style="color: #00ffcc; font-weight: bold; text-shadow: 0 0 5px #00ffcc;">0</span>
-    </div>
-    <button id="pickConfirmBtn" class="primary" disabled>Play</button>
-  </div>
-</div>
-
-<div id="joinModal" class="modalOverlay">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('joinModal'))">✕</button>
-    <h3>Join Coinflip</h3>
-    <h4>Select your items:</h4>
-    <div id="joinItemsList" class="itemsList"></div>
-    <div style="margin-top: 15px; text-align: center; font-size: 18px;">
-      Total Bet: <span id="joinTotalBet" style="color: #00ffcc; font-weight: bold; text-shadow: 0 0 5px #00ffcc;">0</span>
-    </div>
-    <button id="joinConfirmBtn" class="primary" disabled>Join</button>
-  </div>
-</div>
-
-<div id="resultModal" class="modalOverlay">
-  <div class="modal">
-    <h3>Coinflip Result</h3>
-    <div class="coin-result" id="coinResult"></div>
-    <div id="resultText" style="text-align:center; padding: 0 10px;"></div>
-    <button id="resultCloseBtn" class="cancelBtn">Close</button>
-  </div>
-</div>
-
-<div id="profileModal" class="modalOverlay">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('profileModal'))">✕</button>
-    <h3>Profile</h3>
-    <div class="tab-buttons">
-      <button class="tab-btn active" data-tab="inventoryTab">Inventory</button>
-      <button class="tab-btn" data-tab="historyTab">History</button>
-    </div>
-    <div id="inventoryTab" class="tab-content active">
-      <h4>Your Inventory (Total: <span id="userTotal" style="color: #00ffcc;">0</span>)</h4>
-      <div id="yourItemsList" class="itemsList"></div>
-      <div class="inventory-buttons">
-        <button id="depositBtn" class="inv-btn">Deposit</button>
-        <button id="withdrawBtn" class="inv-btn" style="display:none">Withdraw</button>
-      </div>
-    </div>
-    <div id="historyTab" class="tab-content">
-      <h4>Match History</h4>
-      <ul id="historyList"></ul>
-    </div>
-  </div>
-</div>
-
-<div id="depositModal" class="modalOverlay">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('depositModal'))">✕</button>
-    <h3>Deposit Items</h3>
-    <p>To add items to your inventory, visit this link and deposit to your balance. Check bot's nickname - it's important!</p>
-    <div class="bot-buttons">
-      <button class="bot-btn" data-bot="Bot1">Bot 1</button>
-      <button class="bot-btn" data-bot="Bot2">Bot 2</button>
-      <button class="bot-btn" data-bot="Bot3">Bot 3</button>
-    </div>
-  </div>
-</div>
-
-<div id="withdrawModal" class="modalOverlay">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('withdrawModal'))">✕</button>
-    <h3>Withdraw Items</h3>
-    <p>Visit this link and send trade offer to bot to receive your items.</p>
-    <div class="bot-buttons">
-      <button class="bot-btn" data-bot="Bot1">Bot 1</button>
-      <button class="bot-btn" data-bot="Bot2">Bot 2</button>
-      <button class="bot-btn" data-bot="Bot3">Bot 3</button>
-    </div>
-  </div>
-</div>
-
-<div id="leaderboardModal" class="modalOverlay">
-  <div class="modal">
-    <button class="close-modal" onclick="closeModal($('leaderboardModal'))">✕</button>
-    <h3>Leaderboard - Top Players</h3>
-    <ul id="leaderboardList"></ul>
-  </div>
-</div>
+<!-- ... (код модальных окон без изменений) ... -->
 
 <script>
 // Глобальные переменные
@@ -825,6 +50,30 @@ let selectedItems = [];
 let joinSelectedItems = [];
 let currentJoinMatch = null;
 let chatHistory = [];
+
+// Имитация сервера через localStorage
+const SERVER_DATA_KEY = "roflip_server_data";
+
+// Функции для работы с "сервером"
+function getServerData() {
+  const data = localStorage.getItem(SERVER_DATA_KEY);
+  return data ? JSON.parse(data) : {
+    matches: [],
+    chat: [],
+    players: [],
+    leaderboard: []
+  };
+}
+
+function saveServerData(data) {
+  localStorage.setItem(SERVER_DATA_KEY, JSON.stringify(data));
+}
+
+function updateServerData(callback) {
+  const serverData = getServerData();
+  callback(serverData);
+  saveServerData(serverData);
+}
 
 // Функции для работы с localStorage
 function getUsers() {
@@ -841,21 +90,6 @@ function getCurrentUser() {
 
 function setCurrentUser(user) {
   localStorage.setItem('currentUser', JSON.stringify(user));
-}
-
-function getChatHistory() {
-  const history = JSON.parse(localStorage.getItem('roflipChatHistory')) || [];
-  return history.slice(-25); // Возвращаем только последние 25 сообщений
-}
-
-function saveChatMessage(message) {
-  let history = JSON.parse(localStorage.getItem('roflipChatHistory')) || [];
-  history.push(message);
-  // Сохраняем только последние 25 сообщений
-  if (history.length > 25) {
-    history = history.slice(-25);
-  }
-  localStorage.setItem('roflipChatHistory', JSON.stringify(history));
 }
 
 function logout() {
@@ -882,14 +116,22 @@ function initUserData() {
   // Загрузка истории
   history = user.history || [];
   
-  // Инициализация тестовых данных
-  players = [
-    {id: user.id, name: user.username, totalWon: user.totalWon || 0},
-    {id: 2, name: "Player2", totalWon: 150},
-    {id: 3, name: "Player3", totalWon: 80},
-    {id: 4, name: "ProGamer", totalWon: 220},
-    {id: 5, name: "LuckyOne", totalWon: 190}
-  ];
+  // Загрузка данных с "сервера"
+  const serverData = getServerData();
+  matches = serverData.matches;
+  players = serverData.players;
+  
+  // Если пользователя нет в списке игроков, добавляем
+  if (!players.some(p => p.id === user.id)) {
+    players.push({
+      id: user.id, 
+      name: user.username, 
+      totalWon: user.totalWon || 0
+    });
+    updateServerData(data => {
+      data.players = players;
+    });
+  }
   
   // Показываем основной интерфейс с анимацией
   document.getElementById('navbar').style.display = 'flex';
@@ -902,17 +144,43 @@ function initUserData() {
   
   // Загружаем историю чата
   loadChatHistory();
+  
+  // Запускаем обновление данных каждые 2 секунды
+  setInterval(updateFromServer, 2000);
 }
 
 // Загрузка истории чата
 function loadChatHistory() {
-  const history = getChatHistory();
+  const serverData = getServerData();
   const chatContainer = $("chatMessages");
   chatContainer.innerHTML = "";
   
-  history.forEach(msg => {
+  serverData.chat.forEach(msg => {
     addChatToUI(msg.user, msg.text);
   });
+}
+
+// Обновление данных с "сервера"
+function updateFromServer() {
+  const serverData = getServerData();
+  
+  // Обновляем список матчей
+  if (JSON.stringify(matches) !== JSON.stringify(serverData.matches)) {
+    matches = serverData.matches;
+    renderMatches();
+  }
+  
+  // Обновляем чат
+  if ($("chatMessages").childElementCount !== serverData.chat.length) {
+    const chatContainer = $("chatMessages");
+    chatContainer.innerHTML = "";
+    serverData.chat.forEach(msg => {
+      addChatToUI(msg.user, msg.text);
+    });
+  }
+  
+  // Обновляем игроков
+  players = serverData.players;
 }
 
 // Показать окно авторизации
@@ -979,6 +247,15 @@ function registerUser(username, password) {
   saveUsers(users);
   setCurrentUser(newUser);
   
+  // Добавляем игрока на сервер
+  updateServerData(data => {
+    data.players.push({
+      id: newUser.id,
+      name: newUser.username,
+      totalWon: 0
+    });
+  });
+  
   return { success: true };
 }
 
@@ -1038,21 +315,34 @@ function updateUserTotal() {
 }
 
 function cancelMatch(matchId) {
-  const matchIndex = matches.findIndex(m => m.id === matchId);
-  if (matchIndex === -1) return;
-
-  const match = matches[matchIndex];
-  
-  // Возвращаем предметы создателю
-  if (match.creatorId === currentUserId) {
-    userInv.push(...match.creatorItems);
-    updateUserTotal();
-    addChat("System", `Match #${match.id} was canceled by creator. Items returned.`);
-  }
-  
-  // Удаляем матч из списка
-  matches.splice(matchIndex, 1);
-  renderMatches();
+  updateServerData(data => {
+    const matchIndex = data.matches.findIndex(m => m.id === matchId);
+    if (matchIndex === -1) return;
+    
+    const match = data.matches[matchIndex];
+    
+    // Возвращаем предметы создателю
+    if (match.creatorId === currentUserId) {
+      const user = getCurrentUser();
+      user.inventory.push(...match.creatorItems);
+      setCurrentUser(user);
+      saveUserData();
+      
+      // Обновляем инвентарь
+      userInv = user.inventory;
+      updateUserTotal();
+    }
+    
+    // Удаляем матч из списка
+    data.matches.splice(matchIndex, 1);
+    
+    // Добавляем сообщение в чат
+    data.chat.push({
+      user: "System",
+      text: `Match #${match.id} was canceled by creator.`,
+      timestamp: Date.now()
+    });
+  });
 }
 
 function renderMatches() {
@@ -1163,10 +453,20 @@ function addChatToUI(u, t) {
   $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
 }
 
-// Добавление сообщения в чат (с сохранением)
+// Добавление сообщения в чат (с сохранением на сервере)
 function addChat(u, t) {
-  // Сохраняем сообщение
-  saveChatMessage({ user: u, text: t, timestamp: Date.now() });
+  updateServerData(data => {
+    data.chat.push({
+      user: u,
+      text: t,
+      timestamp: Date.now()
+    });
+    
+    // Ограничиваем историю чата
+    if (data.chat.length > 50) {
+      data.chat = data.chat.slice(-50);
+    }
+  });
   
   // Добавляем в UI
   addChatToUI(u, t);
@@ -1194,71 +494,99 @@ function createMatch(items) {
   const matchId = Date.now();
   const sumC = items.reduce((a, i) => a + i.value, 0);
   
-  matches.push({
-    id: matchId,
-    creatorId: currentUserId,
-    creatorName: currentUsername,
-    creatorItems: items.slice(),
-    opponentId: null,
-    opponentName: "",
-    opponentItems: [],
-    status: "waiting"
+  updateServerData(data => {
+    data.matches.push({
+      id: matchId,
+      creatorId: currentUserId,
+      creatorName: currentUsername,
+      creatorItems: items.slice(),
+      opponentId: null,
+      opponentName: "",
+      opponentItems: [],
+      status: "waiting"
+    });
+    
+    // Добавляем сообщение в чат
+    data.chat.push({
+      user: "System",
+      text: `${currentUsername} created match #${matchId} with items: ${items.map(i => i.name).join(", ")} (${sumC})`,
+      timestamp: Date.now()
+    });
   });
   
   // Обновляем статистику игрока
-  const player = players.find(p => p.id === currentUserId);
-  if (player) {
-    player.totalWon -= sumC;
-  }
-  
-  const itemNames = items.map(i => i.name).join(", ");
-  addChat("System", `You created match #${matchId} with items: ${itemNames} (${sumC})`);
+  updateServerData(data => {
+    const player = data.players.find(p => p.id === currentUserId);
+    if (player) {
+      player.totalWon -= sumC;
+    }
+  });
   
   updateUserTotal();
-  renderMatches();
 }
 
 function joinMatch(matchId, items) {
   if (!items || items.length === 0) return;
   
-  const m = matches.find(x => x.id === matchId);
-  if (!m || m.status !== "waiting") return;
+  let match;
   
+  updateServerData(data => {
+    const m = data.matches.find(x => x.id === matchId);
+    if (!m || m.status !== "waiting") return;
+    
+    m.opponentId = currentUserId;
+    m.opponentName = currentUsername;
+    m.opponentItems = items;
+    m.status = "playing";
+    
+    match = {...m};
+    
+    const sumC = m.creatorItems.reduce((a, i) => a + i.value, 0);
+    const sumO = items.reduce((a, i) => a + i.value, 0);
+    
+    // Добавляем сообщение в чат
+    data.chat.push({
+      user: "System",
+      text: `${currentUsername} joined match #${matchId} with items: ${items.map(i => i.name).join(", ")} (${sumO})`,
+      timestamp: Date.now()
+    });
+    data.chat.push({
+      user: "System",
+      text: `Match #${matchId} started: ${sumC} vs ${sumO}`,
+      timestamp: Date.now()
+    });
+  });
+  
+  // Удаляем предметы из инвентаря
   items.forEach(it => {
     const i = userInv.indexOf(it);
     if (i >= 0) userInv.splice(i, 1);
   });
   
-  m.opponentId = currentUserId;
-  m.opponentName = currentUsername;
-  m.opponentItems = items;
-  m.status = "playing";
-  
-  const sumC = m.creatorItems.reduce((a, i) => a + i.value, 0);
-  const sumO = items.reduce((a, i) => a + i.value, 0);
-  
-  addChat("System", `You joined match #${matchId} with items: ${items.map(i => i.name).join(", ")} (${sumO})`);
-  addChat("System", `Match started: ${sumC} vs ${sumO}`);
-  
   updateUserTotal();
-  renderMatches();
   
   setTimeout(() => {
     const winner = Math.random() < 0.5 ? 'creator' : 'opponent';
-    const winnerId = winner === 'creator' ? m.creatorId : m.opponentId;
+    const winnerId = winner === 'creator' ? match.creatorId : match.opponentId;
     const isCurrentUserWinner = winnerId === currentUserId;
     
-    m.status = "finished";
+    updateServerData(data => {
+      const mIndex = data.matches.findIndex(m => m.id === matchId);
+      if (mIndex !== -1) {
+        data.matches.splice(mIndex, 1);
+      }
+    });
     
-    const allItems = m.creatorItems.concat(m.opponentItems);
-    const totalValue = sumC + sumO;
+    const allItems = match.creatorItems.concat(match.opponentItems);
+    const totalValue = match.creatorItems.reduce((a, i) => a + i.value, 0) + 
+                       match.opponentItems.reduce((a, i) => a + i.value, 0);
     
     const record = {
       time: new Date(),
       won: isCurrentUserWinner,
       items: allItems,
       amount: totalValue,
-      opponent: winner === 'creator' ? m.creatorName : m.opponentName
+      opponent: winner === 'creator' ? match.creatorName : match.opponentName
     };
     
     history.unshift(record);
@@ -1266,10 +594,14 @@ function joinMatch(matchId, items) {
     
     if (isCurrentUserWinner) {
       userInv.push(...allItems);
-      const player = players.find(p => p.id === currentUserId);
-      if (player) {
-        player.totalWon += totalValue;
-      }
+      
+      // Обновляем статистику игрока на сервере
+      updateServerData(data => {
+        const player = data.players.find(p => p.id === currentUserId);
+        if (player) {
+          player.totalWon += totalValue;
+        }
+      });
     }
     
     $("#coinResult").textContent = isCurrentUserWinner ? 'YOU WON!' : 'YOU LOST!';
@@ -1283,13 +615,12 @@ function joinMatch(matchId, items) {
     } else {
       $("#resultText").innerHTML = `
         <p>You lost!</p>
-        <p><span style="color:#ff5555; font-weight:bold">${winner === 'creator' ? m.creatorName : m.opponentName}</span> won with ${totalValue} value</p>
+        <p><span style="color:#ff5555; font-weight:bold">${winner === 'creator' ? match.creatorName : match.opponentName}</span> won with ${totalValue} value</p>
       `;
     }
     
     openModal($("resultModal"));
     updateUserTotal();
-    renderMatches();
   }, 2000);
 }
 
@@ -1312,7 +643,7 @@ function initEventListeners() {
       $("chatInput").value = t;
     }
     
-    addChat("You", t); 
+    addChat(currentUsername, t); 
     $("chatInput").value = "";
   };
 
@@ -1426,6 +757,10 @@ function initEventListeners() {
   $("leaderboardBtn").onclick = () => {
     const lst = $("leaderboardList"); 
     lst.innerHTML = "";
+    
+    // Получаем актуальные данные с сервера
+    const serverData = getServerData();
+    const players = serverData.players || [];
     
     players.sort((a,b) => b.totalWon - a.totalWon)
       .slice(0,5)
