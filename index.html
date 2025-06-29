@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neon Coinflip</title>
+<style>
+  body { margin:0; font-family:'Segoe UI',sans-serif; background:#0e0e1a; color:#fff; overflow:hidden }
+  #navbar { background:#1a1a2e; display:flex; align-items:center; padding:10px 20px; box-shadow:0 0 10px #f0f }
+  .left-side, .right-side { display:flex; align-items:center; gap:10px }
+  .left-side { flex:1 }
+  #navbar img { height:40px; margin-right:20px }
+  .nav-btn { background:#ff00cc; border:none; padding:8px 12px; border-radius:5px; cursor:pointer; box-shadow:0 0 8px #ff00cc; transition:background 0.3s; font-size:14px }
+  .nav-btn:hover { background:#ff33dd }
+  #container { display:flex; padding:20px; height:calc(100vh - 60px); box-sizing:border-box; gap:15px }
+  #matchesListPanel { flex:1; min-width:0 }
+  #chatPanel { flex:0 0 350px; display:flex; flex-direction:column; background:#161627; border-radius:8px; padding:15px; box-shadow:0 0 10px #ff00cc44 }
+  #createMatchBtn { background:linear-gradient(90deg,#ff00cc,#3333ff); border:none; color:#fff; padding:10px 20px; cursor:pointer; font-weight:bold; box-shadow:0 0 8px #ff00cc; border-radius:5px; transition:background 0.3s; margin-bottom:15px }
+  #createMatchBtn:hover { background:#d100b3 }
+  #matchesList { flex:1; overflow-y:auto; background:#161627; border-radius:8px; padding:10px }
+  .match { background:#1f1f2f; padding:12px; margin:8px 0; border-radius:8px; border-left:4px solid #ff00cc; box-shadow:0 0 8px #ff00cc44; display:flex; justify-content:space-between; align-items:center }
+  .match-creator { color:#ff5555; font-weight:bold }
+  .match-items { color:#00ffff; font-weight:bold; text-shadow:0 0 5px #00ffff }
+  .match-value { color:#00ffff; font-weight:bold; text-shadow:0 0 5px #00ffff }
+  .match-status { color:#aaa; font-size:0.9em }
+  .join-btn { background:#00ffff; border:none; padding:8px 20px; color:#000; cursor:pointer; font-weight:bold; border-radius:4px; box-shadow:0 0 10px #00ffff; transition:all 0.3s; text-transform:uppercase }
+  .join-btn:hover { background:#33ffff; box-shadow:0 0 15px #00ffff }
+  .cancel-btn { background:#ff5555; border:none; padding:8px 15px; color:#fff; cursor:pointer; font-weight:bold; border-radius:4px; box-shadow:0 0 8px #ff5555; transition:all 0.3s; margin-left:10px }
+  .cancel-btn:hover { background:#ff7777 }
+  #chatMessages { flex:1; overflow-y:auto; margin-bottom:10px; max-height:calc(100vh - 200px) }
+  .chat-message { margin-bottom:8px; word-break:break-word }
+  .chat-username { font-weight:bold; color:#ff66dd }
+  #chatInputContainer { display:flex; gap:5px }
+  #chatInput { flex:1; padding:10px; background:#1f1f2f; border:none; color:#fff; border-radius:4px; max-width:100% }
+  #chatSendBtn { padding:10px 15px; background:#ff00cc; border:none; color:#fff; cursor:pointer; font-weight:bold; border-radius:4px; box-shadow:0 0 8px #ff00cc; transition:background 0.3s }
+  #chatSendBtn:hover { background:#d100b3 }
+  .itemsList { display:flex; gap:10px; flex-wrap:wrap; margin-top:10px }
+  .item { background:#2f2f4f; padding:10px; border-radius:6px; cursor:pointer; color:#fff; transition:transform 0.2s,box-shadow 0.2s }
+  .item:hover { transform:scale(1.05); box-shadow:0 0 6px #0ff }
+  .item.selected { background:#00ffcc; color:#000; font-weight:bold; box-shadow:0 0 10px #00ffcc }
+  @keyframes fadeInZoom { 0% { opacity:0; transform:scale(0.8) } 100% { opacity:1; transform:scale(1) } }
+  @keyframes fadeOutZoom { 0% { opacity:1; transform:scale(1) } 100% { opacity:0; transform:scale(0.8) } }
+  .modalOverlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:10; opacity:0; transition:opacity 0.3s ease }
+  .modalOverlay.active { display:flex; opacity:1 }
+  .modal { background:#1a1a2e; padding:20px; border-radius:10px; width:320px; max-height:80vh; overflow:auto; animation:fadeInZoom 0.3s ease; box-shadow:0 0 15px #ff00cc44 }
+  .modal h3 { margin:0 0 10px; color:#fff }
+  .tab-buttons { display:flex; gap:10px; margin-bottom:10px }
+  .tab-btn { background:#333; color:#fff; border:none; padding:6px 12px; border-radius:5px; cursor:pointer; transition:background 0.3s }
+  .tab-btn.active { background:#ff00cc }
+  .tab-content { display:none; }
+  .tab-content.active { display:block }
+  .modal button.primary { margin-top:10px; background:#00ffcc; color:#000; border:none; padding:8px 16px; border-radius:5px; cursor:pointer; font-weight:bold; box-shadow:0 0 8px #00ffcc; transition:all 0.3s }
+  .modal button.primary:hover { background:#33ffdd; box-shadow:0 0 12px #00ffcc }
+  .modal button.primary:disabled { background:#555; color:#888; box-shadow:none; cursor:not-allowed }
+  .cancelBtn { background:#444; color:#fff; border:none; cursor:pointer; box-shadow:0 0 5px #444; border-radius:5px; padding:8px 16px }
+  .cancelBtn:hover { background:#666 }
+  #historyList, #leaderboardList { list-style:none; padding:0; margin:0 }
+  #historyList li { padding:8px; border-bottom:1px solid #333 }
+  #leaderboardList li { display:flex; justify-content:space-between; background:#1f1f2f; margin:5px 0; padding:8px; border-radius:5px }
+  #leaderboardList li span.name { font-weight:bold }
+  
+  /* Новые стили для окна авторизации */
+  #authModal .modal {
+    width: 400px;
+    background: linear-gradient(135deg, #1a1a2e, #2a2a4e);
+    border: 1px solid #ff00cc;
+    box-shadow: 0 0 20px #ff00cc;
+  }
+  .auth-header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .auth-header h2 {
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+    margin-bottom: 5px;
+  }
+  .auth-header p {
+    color: #aaa;
+    font-size: 14px;
+  }
+  .auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+  }
+  .auth-form input {
+    padding: 12px;
+    border-radius: 5px;
+    border: 1px solid #444;
+    background: rgba(30, 30, 60, 0.7);
+    color: #fff;
+    font-size: 16px;
+    transition: all 0.3s;
+  }
+  .auth-form input:focus {
+    border-color: #00ffff;
+    box-shadow: 0 0 10px #00ffff;
+    outline: none;
+  }
+  .auth-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-radius: 5px;
+    overflow: hidden;
+    background: #1f1f2f;
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    color: #aaa;
+  }
+  .auth-tab.active {
+    background: linear-gradient(90deg, #ff00cc, #3333ff);
+    color: #fff;
+    font-weight: bold;
+  }
+  .auth-switch {
+    margin-top: 15px;
+    text-align: center;
+    color: #666;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  .auth-switch:hover {
+    color: #00ffff;
+  }
+  .error-message {
+    color: #ff5555;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    text-shadow: 0 0 5px #ff5555;
+  }
+  .success-message {
+    color: #00ffaa;
+    text-align: center;
+    margin-top: 10px;
+    font-size: 14px;
+    text-shadow: 0 0 5px #00ffaa;
+  }
+  .auth-btn {
+    background: linear-gradient(90deg, #ff00cc, #3333ff);
+    border: none;
+    color: white;
+    padding: 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    box-shadow: 0 0 10px #ff00cc;
+    transition: all 0.3s;
+  }
+  .auth-btn:hover {
+    background: linear-gradient(90deg, #ff33dd, #5555ff);
+    box-shadow: 0 0 15px #ff00cc;
+  }
+  .auth-btn:disabled {
+    background: #555;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  /* Новые стили для размытого фона */
+  #mainBackground {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://via.placeholder.com/1920x1080?text=Neon+Background') no-repeat center center;
+    background-size: cover;
+    filter: blur(8px) brightness(0.6);
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  
+  #mainBackground.active {
+    opacity: 1;
+  }
+  
+  /* Анимация перехода */
+  @keyframes fadeInMain {
+    0% { opacity: 0; transform: scale(0.95); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  
+  .main-content {
+    animation: fadeInMain 0.5s ease forwards;
+    opacity: 0;
+  }
+
+  @media (max-width: 768px) {
+    #container { flex-direction:column; padding:10px }
+    #chatPanel { flex:0 0 auto; width:100%; margin-top:15px }
+    #matchesListPanel, #chatPanel { margin:0 }
+    #authModal .modal {
+      width: 90%;
+      max-width: 350px;
+    }
+  }
+
+  .inventory-buttons { display:flex; gap:10px; margin-top:15px }
+  .inv-btn { background:#3333ff; border:none; padding:8px 15px; border-radius:5px; cursor:pointer; color:#fff; font-weight:bold; transition:background 0.3s }
+  .inv-btn:hover { background:#5555ff }
+  #withdrawBtn { background:#ff3333 }
+  #withdrawBtn:hover { background:#ff5555 }
+  .coin-result { font-size:2em; text-align:center; margin:15px 0; animation:flip 1s ease }
+  @keyframes flip { 0% { transform:rotateY(0deg) } 50% { transform:rotateY(180deg) } 100% { transform:rotateY(360deg) } }
+  .bot-buttons { display:flex; flex-direction:column; gap:8px; margin:15px 0 }
+  .bot-btn { background:#2f2f4f; border:none; padding:10px; border-radius:5px; color:#fff; cursor:pointer; transition:background 0.3s }
+  .bot-btn:hover { background:#3f3f6f }
+  .match-info { display:flex; flex-direction:column; gap:5px; flex:1 }
+  .match-row { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
+</style>
+</head>
+<body>
+<!-- Размытый фон для основного интерфейса -->
+<div id="mainBackground"></div>
+
+<!-- Главное окно авторизации -->
+<div id="authModal" class="modalOverlay active">
+  <div class="modal">
+    <div class="auth-header">
+      <h2>NEON COINFLIP</h2>
+      <p>Enter your Roblox credentials to start playing</p>
+    </div>
+    
+    <div class="auth-tabs">
+      <div class="auth-tab active" data-tab="register">REGISTER</div>
+      <div class="auth-tab" data-tab="login">LOGIN</div>
+    </div>
+    
+    <div id="registerForm" class="auth-form">
+      <input type="text" id="regUsername" placeholder="Roblox Username" required>
+      <input type="password" id="regPassword" placeholder="Password" required>
+      <input type="password" id="regConfirmPassword" placeholder="Confirm Password" required>
+      <button id="registerBtn" class="auth-btn">CREATE ACCOUNT</button>
+      <div class="auth-switch">Already have an account? Login here</div>
+      <div id="regError" class="error-message"></div>
+      <div id="regSuccess" class="success-message"></div>
+    </div>
+    
+    <div id="loginForm" class="auth-form" style="display:none">
+      <input type="text" id="loginUsername" placeholder="Roblox Username" required>
+      <input type="password" id="loginPassword" placeholder="Password" required>
+      <button id="loginBtn" class="auth-btn">LOGIN</button>
+      <div class="auth-switch">Don't have an account? Register here</div>
+      <div id="loginError" class="error-message"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Основной интерфейс (скрыт до авторизации) -->
+<div id="navbar" style="display:none" class="main-content">
+  <div class="left-side">
+    <img src="https://via.placeholder.com/150x40?text=Neon+Coinflip" alt="Logo">
+  </div>
+  <div class="right-side">
+    <button id="leaderboardBtn" class="nav-btn" title="Leaderboard">🏅</button>
+    <button id="profileBtn" class="nav-btn">Profile</button>
+    <button id="logoutBtn" class="nav-btn" style="background:#ff5555">Logout</button>
+  </div>
+</div>
+
+<div id="container" style="display:none" class="main-content">
+  <div id="matchesListPanel">
+    <button id="createMatchBtn">Create Match</button>
+    <h2>Matches</h2>
+    <div id="matchesList"></div>
+  </div>
+  <div id="chatPanel">
+    <h2>Chat</h2>
+    <div id="chatMessages"></div>
+    <div id="chatInputContainer">
+      <input id="chatInput" type="text" placeholder="Type a message (max 16 chars)" maxlength="16">
+      <button id="chatSendBtn">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Все модальные окна игры -->
+<div id="pickModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Create Coinflip</h3>
+    <h4>Select items to bet:</h4>
+    <div id="pickItems" class="itemsList"></div>
+    <div>Total Bet: <span id="totalBet">0</span></div>
+    <button id="pickConfirmBtn" class="primary" disabled>Play</button>
+    <button id="pickCancelBtn" class="cancelBtn">Cancel</button>
+  </div>
+</div>
+
+<div id="joinModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Join Coinflip</h3>
+    <h4>Select your items:</h4>
+    <div id="joinItemsList" class="itemsList"></div>
+    <div>Total Bet: <span id="joinTotalBet">0</span></div>
+    <button id="joinConfirmBtn" class="primary" disabled>Join</button>
+    <button id="joinCancelBtn" class="cancelBtn">Cancel</button>
+  </div>
+</div>
+
+<div id="resultModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Coinflip Result</h3>
+    <div class="coin-result" id="coinResult"></div>
+    <div id="resultText" style="text-align:center"></div>
+    <button id="resultCloseBtn" class="cancelBtn" style="margin:15px auto 0">Close</button>
+  </div>
+</div>
+
+<div id="profileModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Profile</h3>
+    <div class="tab-buttons">
+      <button class="tab-btn active" data-tab="inventoryTab">Inventory</button>
+      <button class="tab-btn" data-tab="historyTab">History</button>
+    </div>
+    <div id="inventoryTab" class="tab-content active">
+      <h4>Your Inventory (Total: <span id="userTotal">0</span>)</h4>
+      <div id="yourItemsList" class="itemsList"></div>
+      <div class="inventory-buttons">
+        <button id="depositBtn" class="inv-btn">Deposit</button>
+        <button id="withdrawBtn" class="inv-btn" style="display:none">Withdraw</button>
+      </div>
+    </div>
+    <div id="historyTab" class="tab-content">
+      <h4>Match History</h4>
+      <ul id="historyList"></ul>
+    </div>
+    <button id="profileCloseBtn" class="cancelBtn">Close</button>
+  </div>
+</div>
+
+<div id="depositModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Deposit Items</h3>
+    <p>To add items to your inventory, visit this link and deposit to your balance. Check bot's nickname - it's important!</p>
+    <div class="bot-buttons">
+      <button class="bot-btn" data-bot="Bot1">Bot 1</button>
+      <button class="bot-btn" data-bot="Bot2">Bot 2</button>
+      <button class="bot-btn" data-bot="Bot3">Bot 3</button>
+    </div>
+    <button id="depositCloseBtn" class="cancelBtn">Close</button>
+  </div>
+</div>
+
+<div id="withdrawModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Withdraw Items</h3>
+    <p>Visit this link and send trade offer to bot to receive your items.</p>
+    <div class="bot-buttons">
+      <button class="bot-btn" data-bot="Bot1">Bot 1</button>
+      <button class="bot-btn" data-bot="Bot2">Bot 2</button>
+      <button class="bot-btn" data-bot="Bot3">Bot 3</button>
+    </div>
+    <button id="withdrawCloseBtn" class="cancelBtn">Close</button>
+  </div>
+</div>
+
+<div id="leaderboardModal" class="modalOverlay">
+  <div class="modal">
+    <h3>Leaderboard - Top 5</h3>
+    <ul id="leaderboardList"></ul>
+    <button id="lbCloseBtn" class="cancelBtn">Close</button>
+  </div>
+</div>
+
+<script>
+// Глобальные переменные
+let currentUserId = null;
+let currentUsername = "";
+let userInv = [];
+let matches = [], history = [];
+let players = [];
+let selectedItems = [];
+let joinSelectedItems = [];
+let currentJoinMatch = null;
+
+// Функции для работы с localStorage
+function getUsers() {
+  return JSON.parse(localStorage.getItem('neonUsers')) || [];
+}
+
+function saveUsers(users) {
+  localStorage.setItem('neonUsers', JSON.stringify(users));
+}
+
+function getCurrentUser() {
+  return JSON.parse(localStorage.getItem('currentUser'));
+}
+
+function setCurrentUser(user) {
+  localStorage.setItem('currentUser', JSON.stringify(user));
+}
+
+function logout() {
+  localStorage.removeItem('currentUser');
+  location.reload();
+}
+
+// Инициализация данных пользователя
+function initUserData() {
+  const user = getCurrentUser();
+  if (!user) {
+    showAuthModal();
+    return;
+  }
+  
+  currentUserId = user.id;
+  currentUsername = user.username;
+  userInv = user.inventory || [
+    {name:"Godly Knife",value:50},
+    {name:"Rare Gun",value:20},
+    {name:"Epic Skin",value:30}
+  ];
+  
+  // Загрузка истории
+  history = user.history || [];
+  
+  // Инициализация тестовых данных
+  players = [
+    {id:1,name:user.username,totalWon:user.totalWon || 0},
+    {id:2,name:"Player2",totalWon:0},
+    {id:3,name:"Player3",totalWon:0}
+  ];
+  
+  // Активируем размытый фон
+  document.getElementById('mainBackground').classList.add('active');
+  
+  // Показываем основной интерфейс с анимацией
+  document.getElementById('navbar').style.display = 'flex';
+  document.getElementById('container').style.display = 'flex';
+  document.getElementById('authModal').style.display = 'none';
+  
+  // Обновляем интерфейс
+  updateUserTotal(); 
+  renderMatches();
+  addChat("System", `Welcome back, ${user.username}!`);
+  addChat("Admin", "Type /help for commands");
+}
+
+// Показать окно авторизации
+function showAuthModal() {
+  document.getElementById('authModal').style.display = 'flex';
+  document.getElementById('navbar').style.display = 'none';
+  document.getElementById('container').style.display = 'none';
+  document.getElementById('mainBackground').classList.remove('active');
+  document.getElementById('registerForm').style.display = 'flex';
+  document.getElementById('loginForm').style.display = 'none';
+  document.querySelector('.auth-tab[data-tab="register"]').classList.add('active');
+  document.querySelector('.auth-tab[data-tab="login"]').classList.remove('active');
+  clearAuthForms();
+}
+
+// Очистка форм авторизации
+function clearAuthForms() {
+  document.getElementById('regUsername').value = '';
+  document.getElementById('regPassword').value = '';
+  document.getElementById('regConfirmPassword').value = '';
+  document.getElementById('loginUsername').value = '';
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('regError').textContent = '';
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('regSuccess').textContent = '';
+}
+
+// Регистрация нового пользователя
+function registerUser(username, password) {
+  const users = getUsers();
+  
+  // Валидация
+  if (!username || !password) {
+    return { success: false, message: "Please fill all fields" };
+  }
+  
+  if (password.length < 4) {
+    return { success: false, message: "Password must be at least 4 characters" };
+  }
+  
+  if (document.getElementById('regConfirmPassword').value !== password) {
+    return { success: false, message: "Passwords don't match" };
+  }
+  
+  // Проверка на существующего пользователя
+  if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+    return { success: false, message: "Username already exists" };
+  }
+  
+  // Создаем нового пользователя
+  const newUser = {
+    id: Date.now(),
+    username,
+    password, // В реальном приложении нужно хэшировать пароль!
+    inventory: [
+      {name:"Godly Knife",value:50},
+      {name:"Rare Gun",value:20},
+      {name:"Epic Skin",value:30}
+    ],
+    history: [],
+    totalWon: 0
+  };
+  
+  users.push(newUser);
+  saveUsers(users);
+  setCurrentUser(newUser);
+  
+  return { success: true };
+}
+
+// Авторизация пользователя
+function loginUser(username, password) {
+  const users = getUsers();
+  
+  if (!username || !password) {
+    return { success: false, message: "Please fill all fields" };
+  }
+  
+  const user = users.find(u => 
+    u.username.toLowerCase() === username.toLowerCase() && 
+    u.password === password // В реальном приложении сравниваем хэши
+  );
+  
+  if (!user) {
+    return { success: false, message: "Invalid username or password" };
+  }
+  
+  setCurrentUser(user);
+  return { success: true };
+}
+
+// Сохраняем данные пользователя
+function saveUserData() {
+  const user = getCurrentUser();
+  if (!user) return;
+  
+  const users = getUsers();
+  const index = users.findIndex(u => u.id === user.id);
+  
+  if (index !== -1) {
+    users[index].inventory = userInv;
+    users[index].history = history;
+    users[index].totalWon = players.find(p => p.id === currentUserId)?.totalWon || 0;
+    saveUsers(users);
+    setCurrentUser(users[index]);
+  }
+}
+
+// Остальные функции игры
+function renderInventory(c, arr) {
+  c.innerHTML = "";
+  arr.forEach(it => {
+    const d = document.createElement("div");
+    d.className = "item";
+    d.textContent = `${it.name} (${it.value})`;
+    c.appendChild(d);
+  });
+}
+
+function updateUserTotal() {
+  $("userTotal").textContent = userInv.reduce((a, i) => a + i.value, 0);
+  $("withdrawBtn").style.display = userInv.length > 0 ? "block" : "none";
+  saveUserData();
+}
+
+function cancelMatch(matchId) {
+  const matchIndex = matches.findIndex(m => m.id === matchId);
+  if (matchIndex === -1) return;
+
+  const match = matches[matchIndex];
+  
+  // Возвращаем предметы создателю
+  if (match.creatorId === currentUserId) {
+    userInv.push(...match.creatorItems);
+    updateUserTotal();
+    addChat("System", `Match #${match.id} was canceled by creator. Items returned.`);
+  }
+  
+  // Удаляем матч из списка
+  matches.splice(matchIndex, 1);
+  renderMatches();
+}
+
+function renderMatches() {
+  const ml = $("matchesList");
+  ml.innerHTML = "";
+  
+  matches.forEach(m => {
+    const d = document.createElement("div"); 
+    d.className = "match";
+    
+    const creatorName = m.creatorId === currentUserId ? "You" : m.creatorName || "Player";
+    const itemNames = m.creatorItems.map(i => i.name).join(", ");
+    const sumC = m.creatorItems.reduce((a, i) => a + i.value, 0);
+    
+    let statusText = "🔴 Waiting for opponent...";
+    let buttons = "";
+    
+    if (m.status === "playing") {
+      const opponentName = m.opponentId === currentUserId ? "You" : m.opponentName || "Player";
+      const oppItems = m.opponentItems.map(i => i.name).join(", ");
+      const sumO = m.opponentItems.reduce((a, i) => a + i.value, 0);
+      statusText = `🟡 Playing: ${creatorName} (${sumC}) vs ${opponentName} (${sumO})`;
+    } else if (m.status === "finished") {
+      statusText = "⚫ Finished";
+    }
+    
+    if (m.status === "waiting") {
+      if (m.creatorId === currentUserId) {
+        // Кнопка отмены для создателя
+        buttons = `<button class="cancel-btn" data-match="${m.id}">CANCEL</button>`;
+      } else {
+        // Кнопка присоединения для других игроков
+        buttons = `<button class="join-btn" data-match="${m.id}">JOIN</button>`;
+      }
+    }
+    
+    d.innerHTML = `
+      <div class="match-info">
+        <div class="match-row">
+          <span class="match-creator">${creatorName}</span>
+          <span>bet</span>
+          <span class="match-items">${itemNames}</span>
+          <span class="match-value">(${sumC})</span>
+        </div>
+        <div class="match-row">
+          <span class="match-status">${statusText}</span>
+        </div>
+      </div>
+      ${buttons}
+    `;
+    
+    ml.appendChild(d);
+  });
+  
+  // Обработчики для кнопок
+  document.querySelectorAll(".join-btn").forEach(btn => {
+    btn.onclick = () => {
+      currentJoinMatch = matches.find(m => m.id === parseInt(btn.dataset.match));
+      if (currentJoinMatch) {
+        renderInventory($("joinItemsList"), userInv);
+        joinSelectedItems = [];
+        $("joinTotalBet").textContent = "0";
+        $("joinConfirmBtn").disabled = true;
+        
+        openModal($("joinModal"));
+        
+        [...$("joinItemsList").children].forEach((el, i) => {
+          el.onclick = () => {
+            const it = userInv[i];
+            const idx = joinSelectedItems.indexOf(it);
+            
+            if (idx >= 0) {
+              joinSelectedItems.splice(idx, 1);
+            } else {
+              joinSelectedItems.push(it);
+            }
+            
+            el.classList.toggle("selected");
+            const sum = joinSelectedItems.reduce((a,i) => a + i.value, 0);
+            $("joinTotalBet").textContent = sum;
+            $("joinConfirmBtn").disabled = sum === 0;
+          };
+        });
+      }
+    };
+  });
+  
+  // Обработчики для кнопок отмены
+  document.querySelectorAll(".cancel-btn").forEach(btn => {
+    btn.onclick = () => {
+      const matchId = parseInt(btn.dataset.match);
+      cancelMatch(matchId);
+    };
+  });
+}
+
+function addChat(u, t) {
+  const d = document.createElement("div"); 
+  d.className = "chat-message";
+  d.innerHTML = `<span class="chat-username">${sanitizeHTML(u)}:</span> ${sanitizeHTML(t)}`;
+  $("chatMessages").appendChild(d);
+  $("chatMessages").scrollTop = $("chatMessages").scrollHeight;
+}
+
+function openModal(m) {
+  m.classList.add("active");
+  m.querySelector(".modal").style.animation = "fadeInZoom 0.3s ease";
+}
+
+function closeModal(m) {
+  const mo = m.querySelector(".modal");
+  mo.style.animation = "fadeOutZoom 0.2s ease";
+  setTimeout(() => m.classList.remove("active"), 200);
+}
+
+function createMatch(items) {
+  if (!items || items.length === 0) return;
+  
+  items.forEach(it => {
+    const i = userInv.indexOf(it);
+    if (i >= 0) userInv.splice(i, 1);
+  });
+  
+  const matchId = Date.now();
+  const sumC = items.reduce((a, i) => a + i.value, 0);
+  
+  matches.push({
+    id: matchId,
+    creatorId: currentUserId,
+    creatorName: currentUsername,
+    creatorItems: items.slice(),
+    opponentId: null,
+    opponentName: "",
+    opponentItems: [],
+    status: "waiting"
+  });
+  
+  players.find(p => p.id===currentUserId).totalWon -= sumC;
+  
+  const itemNames = items.map(i => i.name).join(", ");
+  addChat("System", `You created match #${matchId} with items: ${itemNames} (${sumC})`);
+  
+  updateUserTotal();
+  renderMatches();
+}
+
+function joinMatch(matchId, items) {
+  if (!items || items.length === 0) return;
+  
+  const m = matches.find(x => x.id === matchId);
+  if (!m || m.status !== "waiting") return;
+  
+  items.forEach(it => {
+    const i = userInv.indexOf(it);
+    if (i >= 0) userInv.splice(i, 1);
+  });
+  
+  m.opponentId = currentUserId;
+  m.opponentName = currentUsername;
+  m.opponentItems = items;
+  m.status = "playing";
+  
+  const sumC = m.creatorItems.reduce((a, i) => a + i.value, 0);
+  const sumO = items.reduce((a, i) => a + i.value, 0);
+  
+  addChat("System", `You joined match #${matchId} with items: ${items.map(i => i.name).join(", ")} (${sumO})`);
+  addChat("System", `Match started: ${sumC} vs ${sumO}`);
+  
+  updateUserTotal();
+  renderMatches();
+  
+  setTimeout(() => {
+    const winner = Math.random() < 0.5 ? 'creator' : 'opponent';
+    const winnerId = winner === 'creator' ? m.creatorId : m.opponentId;
+    const isCurrentUserWinner = winnerId === currentUserId;
+    
+    m.status = "finished";
+    
+    const allItems = m.creatorItems.concat(m.opponentItems);
+    const totalValue = sumC + sumO;
+    
+    const record = {
+      time: new Date(),
+      won: isCurrentUserWinner,
+      items: allItems,
+      amount: totalValue,
+      opponent: winner === 'creator' ? m.creatorName : m.opponentName
+    };
+    
+    history.unshift(record);
+    saveUserData();
+    
+    if (isCurrentUserWinner) {
+      userInv.push(...allItems);
+      players.find(p => p.id===currentUserId).totalWon += totalValue;
+    }
+    
+    $("#coinResult").textContent = isCurrentUserWinner ? 'YOU WON!' : 'YOU LOST!';
+    $("#coinResult").style.color = isCurrentUserWinner ? '#00ff00' : '#ff0000';
+    
+    if (isCurrentUserWinner) {
+      $("#resultText").innerHTML = `
+        <p>You won ${totalValue} value!</p>
+        <p>Received items: ${allItems.map(i => i.name).join(", ")}</p>
+      `;
+    } else {
+      $("#resultText").innerHTML = `
+        <p>You lost!</p>
+        <p>${winner === 'creator' ? m.creatorName : m.opponentName} won with ${totalValue} value</p>
+      `;
+    }
+    
+    openModal($("resultModal"));
+    updateUserTotal();
+    renderMatches();
+  }, 2000);
+}
+
+// Вспомогательные функции
+function $(id) { return document.getElementById(id); }
+
+function sanitizeHTML(str) {
+  return str.replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+// Инициализация обработчиков событий
+function initEventListeners() {
+  // Чат
+  $("chatSendBtn").onclick = () => {
+    let t = $("chatInput").value.trim();
+    if (!t) return;
+    
+    if (t.length > 16) {
+      t = t.substring(0, 16);
+      $("chatInput").value = t;
+    }
+    
+    addChat("You", t); 
+    $("chatInput").value = "";
+  };
+
+  $("chatInput").addEventListener("keydown", e => { 
+    if (e.key==="Enter") $("chatSendBtn").click(); 
+  });
+
+  // Создание матча
+  $("createMatchBtn").onclick = () => {
+    renderInventory($("pickItems"), userInv);
+    selectedItems = []; 
+    $("totalBet").textContent = "0"; 
+    $("pickConfirmBtn").disabled = true;
+    
+    openModal($("pickModal"));
+    
+    [...$("pickItems").children].forEach((el, i) => {
+      el.onclick = function() {
+        const it = userInv[i];
+        const idx = selectedItems.indexOf(it);
+        
+        if (idx >= 0) {
+          selectedItems.splice(idx, 1);
+        } else {
+          selectedItems.push(it);
+        }
+        
+        el.classList.toggle("selected");
+        const sum = selectedItems.reduce((a,i) => a + i.value, 0);
+        $("totalBet").textContent = sum;
+        $("pickConfirmBtn").disabled = sum === 0;
+      };
+    });
+  };
+
+  $("pickCancelBtn").onclick = () => closeModal($("pickModal"));
+  $("pickConfirmBtn").onclick = () => {
+    if (selectedItems.length) { 
+      createMatch(selectedItems); 
+      closeModal($("pickModal")); 
+    }
+  };
+
+  // Присоединение к матчу
+  $("joinCancelBtn").onclick = () => closeModal($("joinModal"));
+  $("joinConfirmBtn").onclick = () => {
+    if (joinSelectedItems.length && currentJoinMatch) { 
+      joinMatch(currentJoinMatch.id, joinSelectedItems); 
+      closeModal($("joinModal")); 
+    }
+  };
+
+  // Результат
+  $("resultCloseBtn").onclick = () => closeModal($("resultModal"));
+
+  // Профиль
+  $("profileBtn").onclick = () => {
+    renderInventory($("yourItemsList"), userInv); 
+    updateUserTotal();
+    openModal($("profileModal"));
+    
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+      btn.onclick = function() {
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+        this.classList.add("active");
+        $(this.dataset.tab).classList.add("active");
+        
+        if (this.dataset.tab === "historyTab") {
+          const hl = $("historyList");
+          hl.innerHTML = "";
+          
+          history.forEach(h => {
+            const d = new Date(h.time);
+            const itemsText = h.items.map(i => i.name).join(", ");
+            const line = `${d.toLocaleString()} - ${h.won ? 'WON vs ' + h.opponent : 'LOST vs ' + h.opponent} ${itemsText} (${h.amount})`;
+            const li = document.createElement("li");
+            li.textContent = line;
+            hl.appendChild(li);
+          });
+        }
+      };
+    });
+  };
+
+  $("profileCloseBtn").onclick = () => closeModal($("profileModal"));
+
+  // Депозит/вывод
+  $("depositBtn").onclick = () => openModal($("depositModal"));
+  $("withdrawBtn").onclick = () => openModal($("withdrawModal"));
+  $("depositCloseBtn").onclick = () => closeModal($("depositModal"));
+  $("withdrawCloseBtn").onclick = () => closeModal($("withdrawModal"));
+
+  // Боты
+  document.querySelectorAll(".bot-btn").forEach(btn => {
+    btn.onclick = function() {
+      const botName = this.dataset.bot;
+      const isDeposit = this.closest("#depositModal");
+      const message = isDeposit 
+        ? `To deposit items, please visit: https://example.com/deposit\nMake sure to trade with ${botName}!` 
+        : `To withdraw items, please visit: https://example.com/withdraw\nSend trade offer to ${botName}!`;
+      alert(message);
+    };
+  });
+
+  // Таблица лидеров
+  $("leaderboardBtn").onclick = () => {
+    const lst = $("leaderboardList"); 
+    lst.innerHTML = "";
+    
+    players.sort((a,b) => b.totalWon - a.totalWon)
+      .slice(0,5)
+      .forEach((p,i) => {
+        const li = document.createElement("li");
+        li.innerHTML = `<span class="name">${i+1}. ${p.name}</span><span>${p.totalWon}</span>`;
+        lst.appendChild(li);
+      });
+    
+    openModal($("leaderboardModal"));
+  };
+
+  $("lbCloseBtn").onclick = () => closeModal($("leaderboardModal"));
+  
+  // Выход
+  $("logoutBtn").onclick = logout;
+}
+
+// Инициализация обработчиков авторизации
+function initAuthListeners() {
+  // Переключение между регистрацией и входом
+  document.querySelectorAll('.auth-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      
+      if (this.dataset.tab === 'register') {
+        document.getElementById('registerForm').style.display = 'flex';
+        document.getElementById('loginForm').style.display = 'none';
+      } else {
+        document.getElementById('registerForm').style.display = 'none';
+        document.getElementById('loginForm').style.display = 'flex';
+      }
+      
+      clearAuthForms();
+    });
+  });
+  
+  // Переключение по ссылке
+  document.querySelectorAll('.auth-switch').forEach(link => {
+    link.addEventListener('click', function() {
+      const isRegister = this.textContent.includes('Login');
+      document.querySelector(`.auth-tab[data-tab="${isRegister ? 'login' : 'register'}"]`).click();
+    });
+  });
+  
+  // Кнопка регистрации
+  document.getElementById('registerBtn').addEventListener('click', function() {
+    const username = document.getElementById('regUsername').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const confirmPassword = document.getElementById('regConfirmPassword').value;
+    
+    const result = registerUser(username, password);
+    if (result.success) {
+      document.getElementById('regSuccess').textContent = 'Account created successfully!';
+      document.getElementById('regError').textContent = '';
+      
+      // Плавный переход после регистрации
+      setTimeout(() => {
+        document.getElementById('authModal').style.opacity = '0';
+        setTimeout(() => {
+          initUserData();
+        }, 500);
+      }, 1000);
+    } else {
+      document.getElementById('regError').textContent = result.message;
+      document.getElementById('regSuccess').textContent = '';
+    }
+  });
+  
+  // Кнопка входа
+  document.getElementById('loginBtn').addEventListener('click', function() {
+    const username = document.getElementById('loginUsername').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    
+    const result = loginUser(username, password);
+    if (result.success) {
+      // Плавный переход после входа
+      document.getElementById('authModal').style.opacity = '0';
+      setTimeout(() => {
+        initUserData();
+      }, 500);
+    } else {
+      document.getElementById('loginError').textContent = result.message;
+    }
+  });
+  
+  // Обработка нажатия Enter в формах
+  document.getElementById('regPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('registerBtn').click();
+  });
+  
+  document.getElementById('regConfirmPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('registerBtn').click();
+  });
+  
+  document.getElementById('loginPassword').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('loginBtn').click();
+  });
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+  initAuthListeners();
+  initEventListeners();
+  
+  // Проверяем, авторизован ли пользователь
+  if (getCurrentUser()) {
+    initUserData();
+  } else {
+    showAuthModal();
+  }
+});
+</script>
+</body>
+</html>
