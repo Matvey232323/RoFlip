@@ -2,7 +2,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #090909;
+  background: #090909; /* чистый тёмный фон */
 }
 
 #map {
@@ -15,4 +15,13 @@ html, body {
   0% { stroke: white; stroke-width: 3; }
   50% { stroke: rgba(255,255,255,0.1); stroke-width: 3; }
   100% { stroke: white; stroke-width: 3; }
+}
+
+/* Попапы */
+.leaflet-popup-content-wrapper {
+  background: rgba(25, 25, 25, 0.9);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  font-family: 'Segoe UI', sans-serif;
 }
