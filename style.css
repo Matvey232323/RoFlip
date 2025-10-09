@@ -1,68 +1,59 @@
 body {
     margin: 0;
-    padding: 0;
-    font-family: 'Garamond', serif;
-    background: url('parchment_texture.jpg') no-repeat center center fixed;
-    background-size: cover;
-    color: #3a2f1c;
-    overflow: hidden;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: #f0e6d6;
+    color: #333;
 }
 
-#header {
-    background: rgba(200,180,150,0.9);
-    border-bottom: 2px solid #6b4f2f;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+#game-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
 }
 
-/* Кнопки */
-.btn, .menu-btn, .diplomacy-option {
-    background-color: rgba(150,120,80,0.8);
-    border: 1px solid #6b4f2f;
-    color: #fff8dc;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s;
+#map-container {
+    flex: 3;
+    background: #d0d0d0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-.btn:hover, .menu-btn:hover, .diplomacy-option:hover {
-    background-color: rgba(180,150,100,0.9);
+#europe-map {
+    width: 90%;
+    height: auto;
+    border: 2px solid #333;
 }
 
-/* Карта */
-.country {
-    stroke: #5b3a1a;
-    stroke-width: 1;
-    cursor: pointer;
-}
-.country:hover {
-    filter: brightness(1.2);
-}
-.city-capital {
-    fill: #b22222;
-}
-.city {
-    fill: #ffcc66;
+#info-panel {
+    flex: 1;
+    background: #fff6e5;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    box-shadow: -5px 0 15px rgba(0,0,0,0.2);
 }
 
-/* Подсказки */
-.tooltip {
-    background-color: rgba(60,50,30,0.9);
-    border: 1px solid #5b3a1a;
-    color: #fff8dc;
-    font-size: 14px;
-    padding: 5px 8px;
-    border-radius: 5px;
+#info-panel h2 {
+    margin: 0;
+    color: #6b3e26;
 }
 
-/* Панели */
-.control-panel {
-    background-color: rgba(180,150,100,0.7);
-    border-radius: 8px;
+#info-panel button {
     padding: 10px;
-    margin-bottom: 10px;
+    font-size: 16px;
+    background: #d8b38f;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
 }
-.panel-title {
-    color: #3a2f1c;
-    font-weight: bold;
-    margin-bottom: 5px;
+
+#info-panel button:hover:enabled {
+    background: #c48b5b;
+}
+
+#info-panel button:disabled {
+    background: #f0e0d0;
+    cursor: not-allowed;
 }
