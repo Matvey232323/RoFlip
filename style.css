@@ -1,27 +1,68 @@
-html, body {
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background: #000000;
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Garamond', serif;
+    background: url('parchment_texture.jpg') no-repeat center center fixed;
+    background-size: cover;
+    color: #3a2f1c;
+    overflow: hidden;
 }
 
-#map {
-  width: 100%;
-  height: 100%;
+#header {
+    background: rgba(200,180,150,0.9);
+    border-bottom: 2px solid #6b4f2f;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.4);
 }
 
-/* Анимация мигания границ */
-@keyframes blinkBorder {
-  0% { stroke: white; stroke-width: 3; }
-  50% { stroke: rgba(255,255,255,0.1); stroke-width: 3; }
-  100% { stroke: white; stroke-width: 3; }
+/* Кнопки */
+.btn, .menu-btn, .diplomacy-option {
+    background-color: rgba(150,120,80,0.8);
+    border: 1px solid #6b4f2f;
+    color: #fff8dc;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
 }
 
-/* Попапы */
-.leaflet-popup-content-wrapper {
-  background: rgba(30,30,30,0.95);
-  color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 0 15px rgba(255,255,255,0.2);
-  font-family: 'Segoe UI', sans-serif;
+.btn:hover, .menu-btn:hover, .diplomacy-option:hover {
+    background-color: rgba(180,150,100,0.9);
+}
+
+/* Карта */
+.country {
+    stroke: #5b3a1a;
+    stroke-width: 1;
+    cursor: pointer;
+}
+.country:hover {
+    filter: brightness(1.2);
+}
+.city-capital {
+    fill: #b22222;
+}
+.city {
+    fill: #ffcc66;
+}
+
+/* Подсказки */
+.tooltip {
+    background-color: rgba(60,50,30,0.9);
+    border: 1px solid #5b3a1a;
+    color: #fff8dc;
+    font-size: 14px;
+    padding: 5px 8px;
+    border-radius: 5px;
+}
+
+/* Панели */
+.control-panel {
+    background-color: rgba(180,150,100,0.7);
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+.panel-title {
+    color: #3a2f1c;
+    font-weight: bold;
+    margin-bottom: 5px;
 }
