@@ -2,7 +2,7 @@ html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #090909; /* чистый тёмный фон */
+  background: #000000;
 }
 
 #map {
@@ -10,7 +10,7 @@ html, body {
   height: 100%;
 }
 
-/* Эффект мигания границы */
+/* Анимация мигания границ */
 @keyframes blinkBorder {
   0% { stroke: white; stroke-width: 3; }
   50% { stroke: rgba(255,255,255,0.1); stroke-width: 3; }
@@ -19,9 +19,9 @@ html, body {
 
 /* Попапы */
 .leaflet-popup-content-wrapper {
-  background: rgba(25, 25, 25, 0.9);
+  background: rgba(30,30,30,0.95);
   color: #fff;
-  border-radius: 12px;
-  box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  box-shadow: 0 0 15px rgba(255,255,255,0.2);
   font-family: 'Segoe UI', sans-serif;
 }
