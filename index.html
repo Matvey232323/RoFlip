@@ -1,115 +1,26 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Age of Civilizations 2 - Браузерная версия</title>
-    <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Europe Strategy Game</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <div id="header">
-            <div id="game-title">Age of Civilizations 2</div>
-            <div id="game-info">
-                <div class="info-box">Ход: <span id="turn-counter">1</span></div>
-                <div class="info-box">Год: <span id="year">2023</span></div>
-                <div class="info-box">Режим: <span id="game-mode">Мир</span></div>
-            </div>
-        </div>
-        
-        <div id="main-content">
-            <div id="sidebar">
-                <div class="control-panel">
-                    <div class="panel-title">Управление</div>
-                    <button id="end-turn-btn" class="btn primary">Завершить ход</button>
-                    <button id="diplomacy-btn" class="btn">Дипломатия</button>
-                    <button id="economy-btn" class="btn">Экономика</button>
-                    <button id="military-btn" class="btn">Военные действия</button>
-                </div>
-                
-                <div class="control-panel">
-                    <div class="panel-title" id="selected-country-title">Выберите страну</div>
-                    <div id="country-info">
-                        <p id="country-name">-</p>
-                        <p id="country-population">Население: -</p>
-                        <p id="country-regions">Регионы: -</p>
-                        <p id="country-cities">Города: -</p>
-                    </div>
-                    <div class="resources">
-                        <div class="resource">
-                            <div class="resource-value" id="money-value">0</div>
-                            <div class="resource-name">Деньги</div>
-                        </div>
-                        <div class="resource">
-                            <div class="resource-value" id="resources-value">0</div>
-                            <div class="resource-name">Ресурсы</div>
-                        </div>
-                        <div class="resource">
-                            <div class="resource-value" id="army-value">0</div>
-                            <div class="resource-name">Армия</div>
-                        </div>
-                        <div class="resource">
-                            <div class="resource-value" id="stability-value">0%</div>
-                            <div class="resource-name">Стабильность</div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="control-panel">
-                    <div class="panel-title">События</div>
-                    <div id="event-log">
-                        <div class="event economy">Начало игры. Выберите страну для управления.</div>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="map-container">
-                <svg id="world-map" viewBox="0 0 1000 500">
-                    <path class="ocean" d="M0,0 L1000,0 L1000,500 L0,500 Z"></path>
-                    <!-- Континенты и страны добавляются через JS -->
-                </svg>
-                <div id="zoom-controls">
-                    <button class="zoom-btn" id="zoom-in">+</button>
-                    <button class="zoom-btn" id="zoom-out">-</button>
-                    <button class="zoom-btn" id="reset-view">⟲</button>
-                </div>
-                <div class="tooltip" id="map-tooltip"></div>
-            </div>
-        </div>
+<div id="game-container">
+    <h1>Europe Strategy Game</h1>
+    <div id="map-container">
+        <!-- SVG карта Европы -->
+        <svg id="europe-map" viewBox="0 0 2000 1500"></svg>
     </div>
-    
-    <div id="diplomacy-panel">
-        <button class="close-btn" id="close-diplomacy">×</button>
-        <h3>Дипломатия</h3>
-        <div id="diplomacy-options">
-            <div class="diplomacy-option" data-action="declare-war">Объявить войну</div>
-            <div class="diplomacy-option" data-action="propose-peace">Предложить мир</div>
-            <div class="diplomacy-option" data-action="form-alliance">Создать альянс</div>
-            <div class="diplomacy-option" data-action="trade-agreement">Торговое соглашение</div>
-        </div>
+    <div id="info-panel">
+        <h2 id="country-name">Выберите страну</h2>
+        <p id="country-info">Информация о стране появится здесь.</p>
+        <button id="develop-btn" disabled>Развивать экономику</button>
+        <button id="move-army-btn" disabled>Переместить армию</button>
+        <button id="next-turn-btn">Следующий год</button>
     </div>
-    
-    <div id="game-menu">
-        <div class="menu-container">
-            <h1 class="menu-title">Age of Civilizations 2</h1>
-            <button class="menu-btn primary" id="start-game-btn">Начать игру</button>
-            <button class="menu-btn" id="load-game-btn">Загрузить игру</button>
-            <button class="menu-btn" id="settings-btn">Настройки</button>
-            
-            <div id="country-selection" style="display: none; margin-top: 20px;">
-                <h3>Выберите страну для управления</h3>
-                <select id="country-select">
-                    <option value="russia">Российская Федерация</option>
-                    <option value="germany">Германия</option>
-                    <option value="france">Франция</option>
-                    <option value="uk">Великобритания</option>
-                    <option value="italy">Италия</option>
-                </select>
-                <button class="menu-btn primary" id="confirm-country">Подтвердить выбор</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="game.js"></script>
+</div>
+<script src="script.js"></script>
 </body>
 </html>
