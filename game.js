@@ -1,45 +1,93 @@
-// Создаём карту (без подложки — чистый фон)
+// Создаём карту (чистый фон)
 const map = L.map('map', {
   zoomControl: true,
   minZoom: 3,
-  maxZoom: 8,
-  zoomSnap: 0.5
+  maxZoom: 6
 }).setView([54.5, 15], 4);
 
-// Цвета стран
-function getRandomColor() {
-  const hue = Math.floor(Math.random() * 360);
-  return `hsl(${hue}, 60%, 50%)`;
-}
+// Фиксированные цвета стран
+const countryColors = {
+  "Ukraine": "#FFD700",   // жёлтый
+  "Moldova": "#800080",   // фиолетовый
+  "Poland": "#FF0000",    
+  "Germany": "#0000FF",   
+  "France": "#00FF00",    
+  "Italy": "#FFA500",     
+  "Romania": "#00CED1",   
+  "Belarus": "#FF69B4",   
+  "Hungary": "#A52A2A",   
+  "Bulgaria": "#8A2BE2",  
+  "Spain": "#DC143C",     
+  "Portugal": "#FF8C00",
+  "Slovakia": "#7FFF00",
+  "Czech Republic": "#40E0D0",
+  "Sweden": "#FF1493",
+  "Norway": "#00FA9A",
+  "Finland": "#1E90FF",
+  "Estonia": "#FFDAB9",
+  "Latvia": "#ADFF2F",
+  "Lithuania": "#FF4500",
+  "Denmark": "#9400D3",
+  "Netherlands": "#00BFFF",
+  "Belgium": "#FF6347",
+  "Switzerland": "#8B0000",
+  "Austria": "#00FF7F",
+  "Greece": "#FF69B4",
+  "Ireland": "#7CFC00",
+  "United Kingdom": "#FF8C00",
+  "Luxembourg": "#BA55D3"
+};
 
-// Слой стран Европы
-let countriesLayer;
+// Переменная для активной страны
 let activeCountryLayer = null;
 
-// Загружаем страны Европы
+// Загружаем GeoJSON Европы
 fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
   .then(res => res.json())
   .then(data => {
-    countriesLayer = L.geoJSON(data, {
+    L.geoJSON(data, {
       style: feature => ({
-        color: "#222",
-        weight: 1,
-        fillColor: getRandomColor(),
-        fillOpacity: 0.8
+        color: "#333",  // границы
+        weight: 1.5,
+        fillColor: countryColors[feature.properties.NAME] || "#CCCCCC",
+        fillOpacity: 0.9
       }),
       onEachFeature: (feature, layer) => {
         layer.bindPopup(`<b>${feature.properties.NAME}</b>`);
+
         layer.on('click', () => {
           if (activeCountryLayer && activeCountryLayer !== layer) {
             resetBorderEffect(activeCountryLayer);
           }
           activeCountryLayer = layer;
           addBorderEffect(layer);
-          loadRegions(feature.properties.NAME);
         });
       }
     }).addTo(map);
   });
+
+// --- Граница мигает белым ---
+function addBorderEffect(layer) {
+  const path = layer.getElement();
+  if (!path) return;
+  path.style.transition = "all 0.5s";
+  let blink = 0;
+  const interval = setInterval(() => {
+    path.style.stroke = blink % 2 === 0 ? "#FFFFFF" : "#333";
+    blink++;
+    if (!activeCountryLayer || activeCountryLayer.getElement() !== path) {
+      clearInterval(interval);
+      path.style.stroke = "#333";
+    }
+  }, 500);
+}
+
+// --- Сброс эффекта ---
+function resetBorderEffect(layer) {
+  const path = layer.getElement();
+  if (!path) return;
+  path.style.stroke = "#333";
+}
 
 // --- Добавляем города (областные центры Украины) ---
 const cities = [
@@ -64,46 +112,3 @@ cities.forEach(city => {
     fillOpacity: 0.8
   }).bindPopup(`<b>${city.name}</b><br>Областной центр`).addTo(map);
 });
-
-// --- Функции мигания границы ---
-function addBorderEffect(layer) {
-  const path = layer.getElement();
-  if (!path) return;
-  path.style.animation = "blinkBorder 1.5s infinite";
-}
-
-function resetBorderEffect(layer) {
-  const path = layer.getElement();
-  if (!path) return;
-  path.style.animation = "none";
-}
-
-// --- Загружаем внутренние регионы (области) при приближении ---
-function loadRegions(countryName) {
-  // В качестве примера используем украинские области (можно добавить другие)
-  const regions = {
-    "Ukraine": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/ukraine-regions.geojson",
-    "Poland": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/poland-regions.geojson",
-    "Germany": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/germany-regions.geojson",
-    "France": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/france-regions.geojson",
-    "Italy": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/italy-regions.geojson"
-  };
-
-  if (!regions[countryName]) return;
-
-  fetch(regions[countryName])
-    .then(res => res.json())
-    .then(data => {
-      L.geoJSON(data, {
-        style: {
-          color: "#ffffff",
-          weight: 1,
-          fillColor: "rgba(255,255,255,0.1)",
-          fillOpacity: 0.3
-        },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>${feature.properties.name}</b>`);
-        }
-      }).addTo(map);
-    });
-}
