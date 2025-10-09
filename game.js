@@ -1,164 +1,80 @@
-// Создаём карту с возможностью сильного приближения
-const map = L.map('map', {
-  zoomControl: true,
-  minZoom: 3,
-  maxZoom: 10,
-  zoomSnap: 0.5
-}).setView([54.5, 15], 4);
-
-// Океан (темно-синий фон)
-L.rectangle([[90, -180], [-90, 180]], {
-  color: "#001F3F",
-  weight: 0,
-  fillColor: "#001F3F",
-  fillOpacity: 1
-}).addTo(map);
-
-// Цвета стран (военные оттенки)
-const countryColors = {
-  "Ukraine": "#BDB76B",   // тёмно-жёлтый хаки
-  "Moldova": "#6B8E23",   // оливковый
-  "Poland": "#556B2F",    
-  "Germany": "#8B4513",   
-  "France": "#2E8B57",    
-  "Italy": "#708238",     
-  "Romania": "#556B2F",   
-  "Belarus": "#6B8E23",   
-  "Hungary": "#4B5320",   
-  "Bulgaria": "#556B2F",  
-  "Spain": "#808000",     
-  "Portugal": "#556B2F",
-  "Slovakia": "#6B8E23",
-  "Czech Republic": "#556B2F",
-  "Sweden": "#556B2F",
-  "Norway": "#4B5320",
-  "Finland": "#708238",
-  "Estonia": "#556B2F",
-  "Latvia": "#6B8E23",
-  "Lithuania": "#556B2F",
-  "Denmark": "#4B5320",
-  "Netherlands": "#556B2F",
-  "Belgium": "#556B2F",
-  "Switzerland": "#8B4513",
-  "Austria": "#556B2F",
-  "Greece": "#6B8E23",
-  "Ireland": "#556B2F",
-  "United Kingdom": "#556B2F",
-  "Luxembourg": "#556B2F"
+let gameState = {
+    currentCountry: null,
+    selectedCountry: null,
+    countries: {},
+    turn: 1,
+    year: 2023,
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0
 };
 
-// Активная страна
-let activeCountryLayer = null;
-
-// --- Функция добавления границы с миганием ---
-function addBorderEffect(layer) {
-  const path = layer.getElement();
-  if (!path) return;
-  path.style.transition = "all 0.5s";
-  let blink = 0;
-  const interval = setInterval(() => {
-    path.style.stroke = blink % 2 === 0 ? "#FFFFFF" : "#333";
-    blink++;
-    if (!activeCountryLayer || activeCountryLayer.getElement() !== path) {
-      clearInterval(interval);
-      path.style.stroke = "#333";
-    }
-  }, 500);
-}
-
-function resetBorderEffect(layer) {
-  const path = layer.getElement();
-  if (!path) return;
-  path.style.stroke = "#333";
-}
-
-// --- Загружаем страны Европы ---
-fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
-  .then(res => res.json())
-  .then(data => {
-    L.geoJSON(data, {
-      style: feature => ({
-        color: "#333",  // границы
-        weight: 1.5,
-        fillColor: countryColors[feature.properties.NAME] || "#556B2F",
-        fillOpacity: 0.95
-      }),
-      onEachFeature: (feature, layer) => {
-        layer.bindPopup(`<b>${feature.properties.NAME}</b>`);
-
-        layer.on('click', () => {
-          if (activeCountryLayer && activeCountryLayer !== layer) {
-            resetBorderEffect(activeCountryLayer);
-          }
-          activeCountryLayer = layer;
-          addBorderEffect(layer);
-
-          // Загружаем регионы и города
-          loadRegions(feature.properties.NAME);
-        });
-      }
-    }).addTo(map);
-  });
-
-// --- Добавляем города (пример: украинские города) ---
-const cities = [
-  { name: "Киев", coords: [50.4501, 30.5234], importance: 3 },
-  { name: "Харьков", coords: [49.9935, 36.2304], importance: 2 },
-  { name: "Чернигов", coords: [51.4982, 31.2893], importance: 1 },
-  { name: "Сумы", coords: [50.9077, 34.7981], importance: 1 },
-  { name: "Львов", coords: [49.8397, 24.0297], importance: 2 },
-  { name: "Одесса", coords: [46.4825, 30.7233], importance: 2 },
-  { name: "Днепр", coords: [48.4647, 35.0462], importance: 2 },
-  { name: "Запорожье", coords: [47.8388, 35.1396], importance: 1 },
-  { name: "Полтава", coords: [49.5883, 34.5514], importance: 1 },
-  { name: "Черкассы", coords: [49.4444, 32.0598], importance: 1 },
-  { name: "Винница", coords: [49.2331, 28.4682], importance: 1 }
-];
-
-cities.forEach(city => {
-  const radius = 4 + city.importance * 2; // важные города крупнее
-  const marker = L.circleMarker(city.coords, {
-    radius,
-    color: "#FFD700",
-    fillColor: "#FFD700",
-    fillOpacity: 0.9
-  }).bindPopup(`<b>${city.name}</b>`);
-  
-  marker.addTo(map);
-
-  // плавная анимация появления
-  marker.setStyle({ opacity: 0 });
-  setTimeout(() => marker.setStyle({ opacity: 1 }), 300);
+document.addEventListener('DOMContentLoaded', () => {
+    initializeGame();
+    setupEventListeners();
+    generateEuropeMap();
 });
 
-// --- Загрузка регионов (пример, плавное появление) ---
-function loadRegions(countryName) {
-  const regionsLinks = {
-    "Ukraine": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/ukraine-regions.geojson",
-    "Poland": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/poland-regions.geojson",
-    "Germany": "https://raw.githubusercontent.com/codeforgermany/click_that_hood/main/public/data/germany-regions.geojson"
-    // добавь другие страны по желанию
-  };
+function initializeGame() {
+    gameState.countries = {
+        russia: {name:"Россия", color:"#8B4513", capital:{x:750,y:150,name:"Москва"}, cities:[{x:750,y:150,name:"Москва",isCapital:true}]},
+        germany: {name:"Германия", color:"#696969", capital:{x:500,y:170,name:"Берлин"}, cities:[{x:500,y:170,name:"Берлин",isCapital:true}]},
+        france: {name:"Франция", color:"#2F4F4F", capital:{x:470,y:180,name:"Париж"}, cities:[{x:470,y:180,name:"Париж",isCapital:true}]},
+        uk: {name:"Великобритания", color:"#4682B4", capital:{x:440,y:130,name:"Лондон"}, cities:[{x:440,y:130,name:"Лондон",isCapital:true}]},
+        italy: {name:"Италия", color:"#CD853F", capital:{x:480,y:210,name:"Рим"}, cities:[{x:480,y:210,name:"Рим",isCapital:true}]}
+    };
+}
 
-  if (!regionsLinks[countryName]) return;
+function setupEventListeners() {
+    document.getElementById('start-game-btn').onclick = () => {
+        document.getElementById('country-selection').style.display = 'block';
+    };
+    document.getElementById('confirm-country').onclick = () => {
+        gameState.currentCountry = document.getElementById('country-select').value;
+        document.getElementById('game-menu').style.display = 'none';
+        selectCountry(gameState.currentCountry);
+    };
+}
 
-  fetch(regionsLinks[countryName])
-    .then(res => res.json())
-    .then(data => {
-      L.geoJSON(data, {
-        style: {
-          color: "#FFFFFF",
-          weight: 1,
-          fillColor: "rgba(255,255,255,0.1)",
-          fillOpacity: 0
-        },
-        onEachFeature: (feature, layer) => {
-          layer.bindPopup(`<b>${feature.properties.name}</b>`);
+function generateEuropeMap() {
+    const svg = document.getElementById('world-map');
 
-          // плавная анимация появления
-          layer.setStyle({ fillOpacity: 0 });
-          setTimeout(() => layer.setStyle({ fillOpacity: 0.3 }), 300);
-        }
-      }).addTo(map);
-    });
+    // Генерация стран
+    for (let id in gameState.countries) {
+        const c = gameState.countries[id];
+        const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+        path.setAttribute("class","country");
+        path.setAttribute("id",id);
+        path.setAttribute("fill",c.color);
+        path.setAttribute("d", generateEuropeShape(id));
+        path.onclick = () => selectCountry(id);
+        svg.appendChild(path);
+
+        // Города
+        c.cities.forEach(city=>{
+            const circle = document.createElementNS("http://www.w3.org/2000/svg","circle");
+            circle.setAttribute("class",city.isCapital?"city city-capital":"city");
+            circle.setAttribute("cx",city.x);
+            circle.setAttribute("cy",city.y);
+            circle.setAttribute("r",city.isCapital?4:3);
+            svg.appendChild(circle);
+        });
+    }
+}
+
+function generateEuropeShape(id) {
+    const shapes = {
+        russia: "M700,100 L780,110 L800,180 L750,200 L720,180 L690,160 L680,120 Z",
+        germany: "M480,150 L520,160 L510,190 L490,200 L470,190 L460,160 Z",
+        france: "M450,160 L490,170 L480,200 L460,210 L440,200 L430,170 Z",
+        uk: "M420,120 L440,130 L430,150 L410,140 Z",
+        italy: "M470,200 L490,210 L480,230 L460,220 Z"
+    };
+    return shapes[id] || "M0,0 L50,0 L50,50 L0,50 Z";
+}
+
+function selectCountry(id) {
+    gameState.selectedCountry = id;
+    document.querySelectorAll(".country").forEach(c=>c.classList.remove("selected"));
+    document.getElementById(id).classList.add("selected");
 }
