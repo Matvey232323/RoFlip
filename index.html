@@ -1,26 +1,416 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Europe Strategy Game</title>
-<link rel="stylesheet" href="style.css">
-</head>
-<body>
-<div id="game-container">
-    <h1>Europe Strategy Game</h1>
-    <div id="map-container">
-        <!-- SVG карта Европы -->
-        <svg id="europe-map" viewBox="0 0 2000 1500"></svg>
+import React, { useState, useEffect, useRef } from "react";
+import { MapContainer, TileLayer, FeatureGroup } from "react-leaflet";
+import { EditControl } from "react-leaflet-draw";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import "leaflet-draw/dist/leaflet.draw.css";
+import { motion } from "framer-motion";
+
+// NOTE: This single-file React component is designed to be used inside a
+// standard React project (Vite/CRA). It uses Tailwind CSS for styling and
+// react-leaflet + leaflet-draw for the interactive map.
+
+export default function App() {
+  const [page, setPage] = useState("home");
+  const [citizens, setCitizens] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("elvaria_citizens")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [info] = useState({
+    name: "Республика Элвария",
+    capital: "Альтенбург",
+    population: "~3.2M",
+    language: "Элварский / Русский",
+    description:
+      "Элвария — молодое, динамичное государство с богатыми культурными традициями и прогрессивной цифровой инфраструктурой.",
+  });
+
+  // Map refs
+  const featureGroupRef = useRef(null);
+
+  // Military map polygons saved per-user in localStorage, emulating "My Maps"
+  const [militaryPolygons, setMilitaryPolygons] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem("elvaria_military_polygons")) || [];
+    } catch (e) {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem("elvaria_citizens", JSON.stringify(citizens));
+  }, [citizens]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "elvaria_military_polygons",
+      JSON.stringify(militaryPolygons)
+    );
+  }, [militaryPolygons]);
+
+  function addCitizen(payload) {
+    const id = Date.now();
+    setCitizens((s) => [...s, { id, ...payload }]);
+  }
+
+  // Handlers for leaflet-draw
+  function _onCreate(e) {
+    const layer = e.layer;
+    const geo = layer.toGeoJSON();
+    setMilitaryPolygons((s) => [...s, geo]);
+  }
+
+  function _onEdited(e) {
+    const layers = e.layers;
+    const newPolys = [];
+    layers.eachLayer((layer) => newPolys.push(layer.toGeoJSON()));
+    // merge with existing polygons that weren't edited by replacing by id is more complex
+    // for simplicity we overwrite whole set with featureGroup content
+    const fg = featureGroupRef.current;
+    if (!fg) return;
+    const geojson = fg.leafletElement
+      ? fg.leafletElement.toGeoJSON()
+      : fg._map
+      ? fg._map.toGeoJSON()
+      : null;
+    if (geojson) setMilitaryPolygons(geojson.features || []);
+  }
+
+  function _onDeleted(e) {
+    const fg = featureGroupRef.current;
+    if (!fg) return;
+    const geojson = fg.leafletElement
+      ? fg.leafletElement.toGeoJSON()
+      : fg._map
+      ? fg._map.toGeoJSON()
+      : null;
+    if (geojson) setMilitaryPolygons(geojson.features || []);
+  }
+
+  // Small helper: pretty card
+  function Card({ title, children }) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="bg-white/60 backdrop-blur-md border border-white/20 rounded-2xl p-6 shadow-lg"
+      >
+        <h3 className="text-xl font-semibold mb-2">{title}</h3>
+        <div className="text-sm text-gray-800">{children}</div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-sky-900 via-indigo-900 to-purple-900 text-white">
+      <div className="max-w-7xl mx-auto p-6">
+        <header className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center text-2xl font-bold">
+              Э
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold">Республика Элвария</h1>
+              <p className="text-xs text-white/60">Официальный сайт (демо)</p>
+            </div>
+          </div>
+
+          <nav className="space-x-3">
+            {[
+              ["home", "Главная"],
+              ["info", "Информация"],
+              ["citizenship", "Гражданство"],
+              ["donate", "Донаты"],
+              ["military", "Военные действия"],
+            ].map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setPage(key)}
+                className={`px-4 py-2 rounded-lg font-medium transition-shadow duration-200 ${{
+                  true: "bg-white/10",
+                }[String(page === key)]} hover:bg-white/20`}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
+        </header>
+
+        <main className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <section className="lg:col-span-2">
+            {page === "home" && (
+              <div className="space-y-6">
+                <Card title="Добро пожаловать в Элварию">
+                  <p className="mb-3">{info.description}</p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => setPage("citizenship")}
+                      className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500"
+                    >
+                      Подать заявку на гражданство
+                    </button>
+                    <button
+                      onClick={() => setPage("military")}
+                      className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-500"
+                    >
+                      Военные действия (карта)
+                    </button>
+                  </div>
+                </Card>
+
+                <Card title="Актуальные новости">
+                  <ul className="space-y-2">
+                    <li>— Национальный день: 21 марта</li>
+                    <li>— Новая программа цифровой идентичности</li>
+                    <li>— Планы развития портовой инфраструктуры</li>
+                  </ul>
+                </Card>
+
+                <Card title="Календарь событий">
+                  <p>Здесь можно показывать события, фестивали, выборы и т.д.</p>
+                </Card>
+              </div>
+            )}
+
+            {page === "info" && (
+              <div className="space-y-6">
+                <Card title="Общая информация">
+                  <p>
+                    <strong>Столица:</strong> {info.capital}
+                    <br />
+                    <strong>Население:</strong> {info.population}
+                    <br />
+                    <strong>Язык:</strong> {info.language}
+                    <br />
+                    <br />
+                    {info.description}
+                  </p>
+                </Card>
+
+                <Card title="История">
+                  <p>
+                    Краткая история страны. (Здесь вы можете заполнить более
+                    подробный контент в зависимости от желаемого уровня.")
+                  </p>
+                </Card>
+              </div>
+            )}
+
+            {page === "citizenship" && (
+              <div className="space-y-6">
+                <Card title="Подача на гражданство">
+                  <CitizenshipForm onCreate={addCitizen} />
+                </Card>
+
+                <Card title="Список заявок">
+                  <div className="space-y-2">
+                    {citizens.length === 0 && <div>Пока заявок нет.</div>}
+                    {citizens.map((c) => (
+                      <div key={c.id} className="p-3 bg-white/10 rounded-md">
+                        <div className="font-semibold">{c.name}</div>
+                        <div className="text-xs">{c.reason}</div>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
+              </div>
+            )}
+
+            {page === "donate" && (
+              <div className="space-y-6">
+                <Card title="Поддержать Элварию">
+                  <p>
+                    Здесь можно подключить платёжный шлюз (Stripe/PayPal) — для
+                    демо реализована клиентская форма.
+                  </p>
+
+                  <DonationForm />
+                </Card>
+              </div>
+            )}
+
+            {page === "military" && (
+              <div className="space-y-6">
+                <Card title="Военные действия — Интерактивная карта">
+                  <p>
+                    На карте вы можете создавать свои зоны и границы. Сохранённые
+                    границы хранятся локально и видимы только вам (имитируем
+                    «My Maps»). Слева — инструменты управления.
+                  </p>
+                </Card>
+
+                <div className="h-[600px] rounded-2xl overflow-hidden border border-white/20">
+                  <MapContainer
+                    center={[51.505, -0.09]}
+                    zoom={4}
+                    style={{ height: "100%", width: "100%" }}
+                  >
+                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+
+                    <FeatureGroup
+                      ref={(ref) => {
+                        featureGroupRef.current = ref;
+                      }}
+                    >
+                      <EditControl
+                        position="topright"
+                        onCreated={_onCreate}
+                        onEdited={_onEdited}
+                        onDeleted={_onDeleted}
+                        draw={{
+                          rectangle: true,
+                          polygon: true,
+                          polyline: false,
+                          circle: false,
+                          marker: true,
+                          circlemarker: false,
+                        }}
+                      />
+                    </FeatureGroup>
+                  </MapContainer>
+                </div>
+
+                <div className="flex gap-3 mt-3">
+                  <button
+                    onClick={() => {
+                      // Export KML/GeoJSON (simple client-side export)
+                      const data = { type: "FeatureCollection", features: militaryPolygons };
+                      const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement("a");
+                      a.href = url;
+                      a.download = "elvaria_military_polygons.geojson";
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-4 py-2 rounded-md bg-emerald-600 hover:bg-emerald-500"
+                  >
+                    Экспортировать (GeoJSON)
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setMilitaryPolygons([]);
+                      const fg = featureGroupRef.current;
+                      if (fg && fg.clearLayers) fg.clearLayers();
+                      localStorage.removeItem("elvaria_military_polygons");
+                    }}
+                    className="px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-500"
+                  >
+                    Очистить
+                  </button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <aside className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+              className="p-5 rounded-2xl border border-white/10 bg-white/5"
+            >
+              <h4 className="font-semibold">Ключевые данные</h4>
+              <div className="text-sm mt-2">
+                <div>Столица: {info.capital}</div>
+                <div>Население: {info.population}</div>
+                <div>Язык: {info.language}</div>
+              </div>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.12 }}
+              className="p-5 rounded-2xl border border-white/10 bg-white/5"
+            >
+              <h4 className="font-semibold mb-2">Быстрые ссылки</h4>
+              <div className="flex flex-col gap-2">
+                <button onClick={() => setPage("donate")} className="text-sm underline">
+                  Поддержать
+                </button>
+                <button onClick={() => setPage("citizenship")} className="text-sm underline">
+                  Стать гражданином
+                </button>
+                <button onClick={() => setPage("military")} className="text-sm underline">
+                  Карта действий
+                </button>
+              </div>
+            </motion.div>
+          </aside>
+        </main>
+
+        <footer className="mt-10 text-center text-white/60">© Республика Элвария — демо</footer>
+      </div>
     </div>
-    <div id="info-panel">
-        <h2 id="country-name">Выберите страну</h2>
-        <p id="country-info">Информация о стране появится здесь.</p>
-        <button id="develop-btn" disabled>Развивать экономику</button>
-        <button id="move-army-btn" disabled>Переместить армию</button>
-        <button id="next-turn-btn">Следующий год</button>
-    </div>
-</div>
-<script src="script.js"></script>
-</body>
-</html>
+  );
+}
+
+function CitizenshipForm({ onCreate }) {
+  const [name, setName] = useState("");
+  const [reason, setReason] = useState("");
+
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (!name) return;
+        onCreate({ name, reason, submittedAt: new Date().toISOString() });
+        setName("");
+        setReason("");
+        alert("Заявка отправлена — она сохранена локально (demo).");
+      }}
+      className="space-y-3"
+    >
+      <input
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        placeholder="Ф.И.О."
+        className="w-full p-3 rounded-md text-black"
+      />
+      <textarea
+        value={reason}
+        onChange={(e) => setReason(e.target.value)}
+        placeholder="Почему вы хотите гражданство?"
+        className="w-full p-3 rounded-md text-black h-28"
+      />
+      <div className="flex gap-3">
+        <button type="submit" className="px-4 py-2 rounded-md bg-indigo-600">
+          Отправить заявку
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function DonationForm() {
+  const [amount, setAmount] = useState(10);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        alert(`Спасибо! (демо) — вы пожертвовали ${amount} у.е.`);
+      }}
+      className="space-y-3"
+    >
+      <div>
+        <label className="text-sm">Сумма (USD)</label>
+        <input
+          type="number"
+          min={1}
+          value={amount}
+          onChange={(e) => setAmount(Number(e.target.value))}
+          className="w-full p-3 rounded-md text-black"
+        />
+      </div>
+      <div className="flex gap-3">
+        <button className="px-4 py-2 rounded-md bg-emerald-600">Пожертвовать</button>
+      </div>
+    </form>
+  );
+}
